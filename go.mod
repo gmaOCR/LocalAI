@@ -5,69 +5,9 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
-	dario.cat/mergo v1.0.1
-	github.com/GeertJohan/go.rice v1.0.3
-	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/alecthomas/kong v0.9.0
-	github.com/census-instrumentation/opencensus-proto v0.4.1
-	github.com/charmbracelet/glamour v0.7.0
-	github.com/chasefleming/elem-go v0.26.0
-	github.com/cncf/xds/go v0.0.0-20240723142845-024c85f92f20
-	github.com/containerd/containerd v1.7.19
-	github.com/dave-gray101/v2keyauth v0.0.0-20240624150259-c45d584d25e2
-	github.com/elliotchance/orderedmap/v2 v2.2.0
-	github.com/fsnotify/fsnotify v1.7.0
-	github.com/ggerganov/whisper.cpp/bindings/go v0.0.0-20240626202019-c118733a29ad
-	github.com/go-audio/wav v1.1.0
-	github.com/go-skynet/go-llama.cpp v0.0.0-20240314183750-6a8041ef6b46
-	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/gofiber/swagger v1.0.0
-	github.com/gofiber/template/html/v2 v2.1.2
-	github.com/gofiber/websocket/v2 v2.2.1
-	github.com/gofrs/flock v0.12.1
-	github.com/golang/protobuf v1.5.4
-	github.com/google/go-containerregistry v0.19.2
-	github.com/google/uuid v1.6.0
-	github.com/gpustack/gguf-parser-go v0.17.0
-	github.com/grpc-ecosystem/grpc-gateway v1.5.0
-	github.com/hpcloud/tail v1.0.0
-	github.com/ipfs/go-log v1.0.5
-	github.com/jaypipes/ghw v0.12.0
-	github.com/joho/godotenv v1.5.1
-	github.com/klauspost/cpuid/v2 v2.2.9
-	github.com/libp2p/go-libp2p v0.39.1
-	github.com/mholt/archiver/v3 v3.5.1
-	github.com/microcosm-cc/bluemonday v1.0.26
-	github.com/mudler/edgevpn v0.30.1
-	github.com/mudler/go-processmanager v0.0.0-20240820160718-8b802d3ecf82
-	github.com/nikolalohinski/gonja/v2 v2.3.2
-	github.com/onsi/ginkgo/v2 v2.22.2
-	github.com/onsi/gomega v1.36.2
-	github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e
-	github.com/otiai10/openaigo v1.7.0
-	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
-	github.com/prometheus/client_golang v1.20.5
-	github.com/rs/zerolog v1.33.0
-	github.com/russross/blackfriday v1.6.0
-	github.com/sashabaranov/go-openai v1.26.2
-	github.com/schollz/progressbar/v3 v3.14.4
-	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/streamer45/silero-vad-go v0.2.1
-	github.com/stretchr/testify v1.10.0
-	github.com/swaggo/swag v1.16.3
-	github.com/testcontainers/testcontainers-go v0.35.0
-	github.com/tmc/langchaingo v0.1.12
-	github.com/valyala/fasthttp v1.55.0
-	go.opentelemetry.io/otel v1.34.0
-	go.opentelemetry.io/otel/exporters/prometheus v0.50.0
-	go.opentelemetry.io/otel/metric v1.34.0
-	go.opentelemetry.io/otel/sdk/metric v1.28.0
-	google.golang.org/api v0.180.0
-	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.36.5
-	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.1
-	oras.land/oras-go/v2 v2.5.0
+	github.com/go-skynet/llama v0.0.0-20230319223917-0076188dd548
+	github.com/gofiber/fiber/v2 v2.42.0
+	github.com/urfave/cli/v2 v2.25.0
 )
 
 require (
