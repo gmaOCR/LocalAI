@@ -1,123 +1,209 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
 	"os"
-	"os/signal"
-	"path/filepath"
-	"syscall"
+	"runtime"
+	"text/template"
 
-	"github.com/alecthomas/kong"
-	"github.com/joho/godotenv"
-	"github.com/mudler/LocalAI/core/cli"
-	"github.com/mudler/LocalAI/internal"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-
-	_ "github.com/mudler/LocalAI/swagger"
+	llama "github.com/go-skynet/llama/go"
+	"github.com/urfave/cli/v2"
 )
 
-func main() {
-	var err error
+// Define the template string
+var emptyInput string = `Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
-	// Initialize zerolog at a level of INFO, we will set the desired level after we parse the CLI options
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+### Instruction:
+{{.Instruction}}
 
-	// Catch signals from the OS requesting us to exit
-	go func() {
-		c := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		<-c
-		os.Exit(1)
-	}()
+### Response:`
 
-	// handle loading environment variabled from .env files
-	envFiles := []string{".env", "localai.env"}
-	homeDir, err := os.UserHomeDir()
-	if err == nil {
-		envFiles = append(envFiles, filepath.Join(homeDir, "localai.env"), filepath.Join(homeDir, ".config/localai.env"))
-	}
-	envFiles = append(envFiles, "/etc/localai.env")
+var nonEmptyInput string = `Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
-	for _, envFile := range envFiles {
-		if _, err := os.Stat(envFile); err == nil {
-			log.Info().Str("envFile", envFile).Msg("env file found, loading environment variables from file")
-			err = godotenv.Load(envFile)
-			if err != nil {
-				log.Error().Err(err).Str("envFile", envFile).Msg("failed to load environment variables from file")
-				continue
-			}
-		}
-	}
+### Instruction:
+{{.Instruction}}
 
-	// Actually parse the CLI options
-	ctx := kong.Parse(&cli.CLI,
-		kong.Description(
-			`  LocalAI is a drop-in replacement OpenAI API for running LLM, GPT and genAI models locally on CPU, GPUs with consumer grade hardware.
+### Input:
+{{.Input}}
 
-Some of the models compatible are:
-  - Vicuna
-  - Koala
-  - GPT4ALL
-  - GPT4ALL-J
-  - Cerebras
-  - Alpaca
-  - StableLM (ggml quantized)
+### Response:
+`
 
-For a list of all available models for one-click install, check out: https://models.localai.io
-
-Copyright: Ettore Di Giacinto
-
-Version: ${version}
-`,
-		),
-		kong.UsageOnError(),
-		kong.Vars{
-			"basepath":  kong.ExpandPath("."),
-			"galleries": `[{"name":"localai", "url":"github:mudler/LocalAI/gallery/index.yaml@master"}]`,
-			"backends":  `[{"name":"localai", "url":"github:mudler/LocalAI/backend/index.yaml@master"}]`,
-			"version":   internal.PrintableVersion(),
-		},
-	)
-
-	// Configure the logging level before we run the application
-	// This is here to preserve the existing --debug flag functionality
-	logLevel := "info"
-	if cli.CLI.Debug && cli.CLI.LogLevel == nil {
-		logLevel = "debug"
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		cli.CLI.LogLevel = &logLevel
-	}
-
-	if cli.CLI.LogLevel == nil {
-		cli.CLI.LogLevel = &logLevel
-	}
-
-	switch *cli.CLI.LogLevel {
-	case "error":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-		log.Info().Msg("Setting logging to error")
-	case "warn":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-		log.Info().Msg("Setting logging to warn")
-	case "info":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-		log.Info().Msg("Setting logging to info")
-	case "debug":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Setting logging to debug")
-	case "trace":
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-		log.Trace().Msg("Setting logging to trace")
-	}
-
-	// Populate the application with the embedded backend assets
-	cli.CLI.Context.BackendAssets = backendAssets
-
-	// Run the thing!
-	err = ctx.Run(&cli.CLI.Context)
+func templateString(t string, in interface{}) (string, error) {
+	// Parse the template
+	tmpl, err := template.New("prompt").Parse(t)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error running the application")
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, in)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func main() {
+	app := &cli.App{
+		Name:    "llama-cli",
+		Version: "0.1",
+		Usage:   "llama-cli --model ... --instruction 'What is an alpaca?'",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "template",
+				EnvVars: []string{"TEMPLATE"},
+			},
+			&cli.StringFlag{
+				Name:    "instruction",
+				EnvVars: []string{"INSTRUCTION"},
+			},
+			&cli.StringFlag{
+				Name:    "input",
+				EnvVars: []string{"INPUT"},
+			},
+			&cli.StringFlag{
+				Name:    "model",
+				EnvVars: []string{"MODEL_PATH"},
+			},
+			&cli.IntFlag{
+				Name:    "tokens",
+				EnvVars: []string{"TOKENS"},
+				Value:   128,
+			},
+			&cli.IntFlag{
+				Name:    "threads",
+				EnvVars: []string{"THREADS"},
+				Value:   runtime.NumCPU(),
+			},
+			&cli.Float64Flag{
+				Name:    "temperature",
+				EnvVars: []string{"TEMPERATURE"},
+				Value:   0.95,
+			},
+			&cli.Float64Flag{
+				Name:    "topp",
+				EnvVars: []string{"TOP_P"},
+				Value:   0.85,
+			},
+			&cli.IntFlag{
+				Name:    "topk",
+				EnvVars: []string{"TOP_K"},
+				Value:   20,
+			},
+		},
+		Description: `Run llama.cpp inference`,
+		UsageText: `
+llama-cli --model ~/ggml-alpaca-7b-q4.bin --instruction "What's an alpaca?"
+
+	An Alpaca (Vicugna pacos) is a domesticated species of South American camelid, related to llamas and originally from Peru but now found throughout much of Andean region. They are bred for their fleeces which can be spun into wool or knitted items such as hats, sweaters, blankets etc
+		
+echo "An Alpaca (Vicugna pacos) is a domesticated species of South American camelid, related to llamas and originally from Peru but now found throughout much of Andean region. They are bred for their fleeces which can be spun into wool or knitted items such as hats, sweaters, blankets etc" | llama-cli --model ~/ggml-alpaca-7b-q4.bin --instruction "Proofread, improving clarity and flow" --input "-"
+
+	An Alpaca (Vicugna pacos) is a domesticated species from South America that's related to llamas. Originating in Peru but now found throughout the Andean region, they are bred for their fleeces which can be spun into wool or knitted items such as hats and sweaters—blankets too!
+`,
+		Copyright: "go-skynet authors",
+		Commands: []*cli.Command{
+			{
+				Name: "api",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:    "threads",
+						EnvVars: []string{"THREADS"},
+						Value:   runtime.NumCPU(),
+					},
+					&cli.StringFlag{
+						Name:    "model",
+						EnvVars: []string{"MODEL_PATH"},
+					},
+					&cli.StringFlag{
+						Name:    "address",
+						EnvVars: []string{"ADDRESS"},
+						Value:   ":8080",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					return api(ctx.String("model"), ctx.String("address"), ctx.Int("threads"))
+				},
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+
+			instruction := ctx.String("instruction")
+			input := ctx.String("input")
+			templ := ctx.String("template")
+
+			promptTemplate := ""
+
+			if input != "" {
+				promptTemplate = nonEmptyInput
+			} else {
+				promptTemplate = emptyInput
+			}
+
+			if templ != "" {
+				dat, err := os.ReadFile(templ)
+				if err != nil {
+					fmt.Printf("Failed reading file: %s", err.Error())
+					os.Exit(1)
+				}
+				promptTemplate = string(dat)
+			}
+
+			if instruction == "-" {
+				dat, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					fmt.Printf("reading stdin failed: %s", err)
+					os.Exit(1)
+				}
+				instruction = string(dat)
+			}
+
+			if input == "-" {
+				dat, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					fmt.Printf("reading stdin failed: %s", err)
+					os.Exit(1)
+				}
+				input = string(dat)
+			}
+
+			str, err := templateString(promptTemplate, struct {
+				Instruction string
+				Input       string
+			}{Instruction: instruction, Input: input})
+
+			if err != nil {
+				fmt.Println("Templating the input failed:", err.Error())
+				os.Exit(1)
+			}
+			l, err := llama.New(ctx.String("model"))
+			if err != nil {
+				fmt.Println("Loading the model failed:", err.Error())
+				os.Exit(1)
+			}
+			res, err := l.Predict(
+				str,
+				llama.SetTemperature(ctx.Float64("temperature")),
+				llama.SetTopP(ctx.Float64("topp")),
+				llama.SetTopK(ctx.Int("topk")),
+				llama.SetTokens(ctx.Int("tokens")),
+				llama.SetThreads(ctx.Int("threads")),
+			)
+			if err != nil {
+				fmt.Printf("predicting failed: %s", err)
+				os.Exit(1)
+			}
+			fmt.Println(res)
+			return nil
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
