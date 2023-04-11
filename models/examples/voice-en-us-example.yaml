@@ -1,0 +1,7 @@
+backend: piper
+name: voice-en-us-example
+parameters:
+  model: en-us-example.onnx
+  
+voice: en-us-example
+language: en

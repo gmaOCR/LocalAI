@@ -1,0 +1,7 @@
+backend: piper
+name: voice-fr-example
+parameters:
+  model: fr-example.onnx
+  
+voice: fr-example
+language: fr
