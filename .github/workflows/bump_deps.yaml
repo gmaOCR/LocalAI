@@ -9,52 +9,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - repository: "ggml-org/llama.cpp"
-            variable: "CPPLLAMA_VERSION"
+          - repository: "go-skynet/go-gpt4all-j.cpp"
+            variable: "GOGPT4ALLJ_VERSION"
             branch: "master"
-          - repository: "ggml-org/whisper.cpp"
-            variable: "WHISPER_CPP_VERSION"
+          - repository: "go-skynet/go-llama.cpp"
+            variable: "GOLLAMA_VERSION"
             branch: "master"
-          - repository: "PABannier/bark.cpp"
-            variable: "BARKCPP_VERSION"
+          - repository: "go-skynet/go-gpt2.cpp"
+            variable: "GOGPT2_VERSION"
+            branch: "master"
+          - repository: "donomii/go-rwkv.cpp"
+            variable: "RWKV_VERSION"
             branch: "main"
-          - repository: "leejet/stable-diffusion.cpp"
-            variable: "STABLEDIFFUSION_GGML_VERSION"
-            branch: "master"
-          - repository: "mudler/go-stable-diffusion"
-            variable: "STABLEDIFFUSION_VERSION"
-            branch: "master"
-          - repository: "mudler/go-piper"
-            variable: "PIPER_VERSION"
-            branch: "master"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Bump dependencies 🔧
-        id: bump
         run: |
-          bash .github/bump_deps.sh ${{ matrix.repository }} ${{ matrix.branch }} ${{ matrix.variable }}
-          {
-            echo 'message<<EOF'
-            cat "${{ matrix.variable }}_message.txt"
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo 'commit<<EOF'
-            cat "${{ matrix.variable }}_commit.txt"
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-          rm -rfv ${{ matrix.variable }}_message.txt
-          rm -rfv ${{ matrix.variable }}_commit.txt
+          bash .github/bump_deps.sh ${{ matrix.repo }} ${{ matrix.branch }} ${{ matrix.variable }}
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.UPDATE_BOT_TOKEN }}
           push-to-fork: ci-forks/LocalAI
-          commit-message: ':arrow_up: Update ${{ matrix.repository }}'
-          title: 'chore: :arrow_up: Update ${{ matrix.repository }} to `${{ steps.bump.outputs.commit }}`'
-          branch: "update/${{ matrix.variable }}"
-          body: ${{ steps.bump.outputs.message }}
+          commit-message: ':arrow_up: Update ${{ matrix.repo }}'
+          title: ':arrow_up: Update ${{ matrix.repo }}'
+          body: Bump of ${{ matrix.repo }} version
           signoff: true
 
 
