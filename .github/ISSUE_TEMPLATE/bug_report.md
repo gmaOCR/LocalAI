@@ -2,7 +2,9 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: bug, unconfirmed, up-for-grabs
+labels: bug
+assignees: mudler
+
 ---
 
 <!-- Thanks for helping us to improve LocalAI! We welcome all bug reports. Please fill out each area of the template so we can better help you. Comments like this will be hidden when you post but you can delete them if you wish. -->
