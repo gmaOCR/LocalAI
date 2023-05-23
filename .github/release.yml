@@ -12,23 +12,10 @@ changelog:
     - title: "Bug fixes :bug:"
       labels:
         - bug
-        - regression
-    - title: "🖧 P2P area"
-      labels:
-         - area/p2p
     - title: Exciting New Features 🎉
       labels:
         - Semver-Minor
         - enhancement
-        - ux
-        - roadmap
-    - title: 🧠 Models
-      labels:
-        - area/ai-model
-    - title: 📖 Documentation and examples
-      labels:
-        - kind/documentation
-        - examples
     - title: 👒 Dependencies
       labels:
         - dependencies
