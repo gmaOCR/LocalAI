@@ -2,7 +2,6 @@ package langchain
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/huggingface"
@@ -10,16 +9,11 @@ import (
 
 type HuggingFace struct {
 	modelPath string
-	token     string
 }
 
-func NewHuggingFace(repoId, token string) (*HuggingFace, error) {
-	if token == "" {
-		return nil, fmt.Errorf("no huggingface token provided")
-	}
+func NewHuggingFace(repoId string) (*HuggingFace, error) {
 	return &HuggingFace{
 		modelPath: repoId,
-		token:     token,
 	}, nil
 }
 
@@ -27,7 +21,7 @@ func (s *HuggingFace) PredictHuggingFace(text string, opts ...PredictOption) (*P
 	po := NewPredictOptions(opts...)
 
 	// Init client
-	llm, err := huggingface.New(huggingface.WithToken(s.token))
+	llm, err := huggingface.New()
 	if err != nil {
 		return nil, err
 	}
