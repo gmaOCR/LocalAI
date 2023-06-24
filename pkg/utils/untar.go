@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/mholt/archiver/v3"
 )
@@ -53,17 +52,5 @@ func ExtractArchive(archive, dst string) error {
 	case *archiver.TarZstd:
 		v.Tar = mytar
 	}
-
-	err = archiver.Walk(archive, func(f archiver.File) error {
-		if f.FileInfo.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("archive contains a symlink")
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
 	return un.Unarchive(archive, dst)
 }
