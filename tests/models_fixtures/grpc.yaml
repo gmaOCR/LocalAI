@@ -1,5 +1,5 @@
 name: code-search-ada-code-001
-backend: sentencetransformers
+backend: huggingface
 embeddings: true
 parameters:
   model: all-MiniLM-L6-v2

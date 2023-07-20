@@ -29,9 +29,9 @@ func DisplayDownloadFunction(fileName string, current string, total string, perc
 		}
 
 		if total != "" {
-			log.Info().Msgf("Downloading %s: %s/%s (%.2f%%) ETA: %s", fileName, current, total, percentage, eta)
+			log.Debug().Msgf("Downloading %s: %s/%s (%.2f%%) ETA: %s", fileName, current, total, percentage, eta)
 		} else {
-			log.Info().Msgf("Downloading: %s", current)
+			log.Debug().Msgf("Downloading: %s", current)
 		}
 	}
 }
