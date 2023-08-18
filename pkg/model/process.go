@@ -1,11 +1,9 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -16,111 +14,76 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var forceBackendShutdown bool = os.Getenv("LOCALAI_FORCE_BACKEND_SHUTDOWN") == "true"
+func (ml *ModelLoader) StopAllExcept(s string) {
+	ml.StopGRPC(func(id string, p *process.Process) bool {
+		if id != s {
+			for ml.models[id].IsBusy() {
+				log.Debug().Msgf("%s busy. Waiting.", id)
+				time.Sleep(2 * time.Second)
+			}
+			log.Debug().Msgf("[single-backend] Stopping %s", id)
+			return true
+		}
+		return false
+	})
+}
 
 func (ml *ModelLoader) deleteProcess(s string) error {
-	model, ok := ml.models[s]
-	if !ok {
-		log.Debug().Msgf("Model %s not found", s)
-		return fmt.Errorf("model %s not found", s)
+	if err := ml.grpcProcesses[s].Stop(); err != nil {
+		return err
 	}
-
-	defer delete(ml.models, s)
-
-	retries := 1
-	for model.GRPC(false, ml.wd).IsBusy() {
-		log.Debug().Msgf("%s busy. Waiting.", s)
-		dur := time.Duration(retries*2) * time.Second
-		if dur > retryTimeout {
-			dur = retryTimeout
-		}
-		time.Sleep(dur)
-		retries++
-
-		if retries > 10 && forceBackendShutdown {
-			log.Warn().Msgf("Model %s is still busy after %d retries. Forcing shutdown.", s, retries)
-			break
-		}
-	}
-
-	log.Debug().Msgf("Deleting process %s", s)
-
-	process := model.Process()
-	if process == nil {
-		log.Error().Msgf("No process for %s", s)
-		// Nothing to do as there is no process
-		return nil
-	}
-
-	err := process.Stop()
-	if err != nil {
-		log.Error().Err(err).Msgf("(deleteProcess) error while deleting process %s", s)
-	}
-
-	return err
+	delete(ml.grpcProcesses, s)
+	delete(ml.models, s)
+	return nil
 }
 
-func (ml *ModelLoader) StopGRPC(filter GRPCProcessFilter) error {
-	var err error = nil
-	ml.mu.Lock()
-	defer ml.mu.Unlock()
+type GRPCProcessFilter = func(id string, p *process.Process) bool
 
-	for k, m := range ml.models {
-		if filter(k, m.Process()) {
-			e := ml.deleteProcess(k)
-			err = errors.Join(err, e)
-		}
-	}
-	return err
+func includeAllProcesses(_ string, _ *process.Process) bool {
+	return true
 }
 
-func (ml *ModelLoader) StopAllGRPC() error {
-	return ml.StopGRPC(all)
+func (ml *ModelLoader) StopGRPC(filter GRPCProcessFilter) {
+	for k, p := range ml.grpcProcesses {
+		if filter(k, p) {
+			ml.deleteProcess(k)
+		}
+	}
+}
+
+func (ml *ModelLoader) StopAllGRPC() {
+	ml.StopGRPC(includeAllProcesses)
 }
 
 func (ml *ModelLoader) GetGRPCPID(id string) (int, error) {
-	ml.mu.Lock()
-	defer ml.mu.Unlock()
-	p, exists := ml.models[id]
+	p, exists := ml.grpcProcesses[id]
 	if !exists {
 		return -1, fmt.Errorf("no grpc backend found for %s", id)
 	}
-	if p.Process() == nil {
-		return -1, fmt.Errorf("no grpc backend found for %s", id)
-	}
-	return strconv.Atoi(p.Process().PID)
+	return strconv.Atoi(p.PID)
 }
 
-func (ml *ModelLoader) startProcess(grpcProcess, id string, serverAddress string, args ...string) (*process.Process, error) {
+func (ml *ModelLoader) startProcess(grpcProcess, id string, serverAddress string) error {
 	// Make sure the process is executable
-	if err := os.Chmod(grpcProcess, 0700); err != nil {
-		return nil, err
+	if err := os.Chmod(grpcProcess, 0755); err != nil {
+		return err
 	}
 
 	log.Debug().Msgf("Loading GRPC Process: %s", grpcProcess)
 
 	log.Debug().Msgf("GRPC Service for %s will be running at: '%s'", id, serverAddress)
 
-	workDir, err := filepath.Abs(filepath.Dir(grpcProcess))
-	if err != nil {
-		return nil, err
-	}
-
 	grpcControlProcess := process.New(
 		process.WithTemporaryStateDir(),
-		process.WithName(filepath.Base(grpcProcess)),
-		process.WithArgs(append(args, []string{"--addr", serverAddress}...)...),
+		process.WithName(grpcProcess),
+		process.WithArgs("--addr", serverAddress),
 		process.WithEnvironment(os.Environ()...),
-		process.WithWorkDir(workDir),
 	)
 
-	if ml.wd != nil {
-		ml.wd.Add(serverAddress, grpcControlProcess)
-		ml.wd.AddAddressModelMap(serverAddress, id)
-	}
+	ml.grpcProcesses[id] = grpcControlProcess
 
 	if err := grpcControlProcess.Run(); err != nil {
-		return grpcControlProcess, err
+		return err
 	}
 
 	log.Debug().Msgf("GRPC Service state dir: %s", grpcControlProcess.StateDir())
@@ -129,10 +92,7 @@ func (ml *ModelLoader) startProcess(grpcProcess, id string, serverAddress string
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		err := grpcControlProcess.Stop()
-		if err != nil {
-			log.Error().Err(err).Msg("error while shutting down grpc process")
-		}
+		grpcControlProcess.Stop()
 	}()
 
 	go func() {
@@ -154,5 +114,5 @@ func (ml *ModelLoader) startProcess(grpcProcess, id string, serverAddress string
 		}
 	}()
 
-	return grpcControlProcess, nil
+	return nil
 }
