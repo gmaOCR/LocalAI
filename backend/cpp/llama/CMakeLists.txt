@@ -1,21 +1,8 @@
-set(TARGET grpc-server)
 set(CMAKE_CXX_STANDARD 17)
 cmake_minimum_required(VERSION 3.15)
 set(TARGET grpc-server)
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 set(_REFLECTION grpc++_reflection)
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    # Set correct Homebrew install folder for Apple Silicon and Intel Macs
-    if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
-        set(HOMEBREW_DEFAULT_PREFIX "/opt/homebrew")
-    else()
-        set(HOMEBREW_DEFAULT_PREFIX "/usr/local")
-    endif()
-
-    link_directories("${HOMEBREW_DEFAULT_PREFIX}/lib")
-    include_directories("${HOMEBREW_DEFAULT_PREFIX}/include")
-endif()
 
 find_package(absl CONFIG REQUIRED)
 find_package(Protobuf CONFIG REQUIRED)
@@ -28,10 +15,11 @@ find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${Protobuf_INCLUDE_DIRS})
 
-message(STATUS "Using protobuf version ${Protobuf_VERSION} | Protobuf_INCLUDE_DIRS: ${Protobuf_INCLUDE_DIRS} | CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
+message(STATUS "Using protobuf ${Protobuf_VERSION} ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}")
+
 
 # Proto file
-get_filename_component(hw_proto "../../../../../../backend/backend.proto" ABSOLUTE)
+get_filename_component(hw_proto "../../../../../../pkg/grpc/proto/backend.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
 
 # Generated sources
@@ -55,14 +43,10 @@ add_library(hw_grpc_proto
   ${hw_grpc_srcs}
   ${hw_grpc_hdrs}
   ${hw_proto_srcs}
-  ${hw_proto_hdrs} )
+  ${hw_proto_hdrs})
 
-add_executable(${TARGET} grpc-server.cpp utils.hpp json.hpp httplib.h)
-
-target_include_directories(${TARGET} PRIVATE ../llava)
-target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR})
-
-target_link_libraries(${TARGET} PRIVATE common llama mtmd ${CMAKE_THREAD_LIBS_INIT} absl::flags hw_grpc_proto
+add_executable(${TARGET} grpc-server.cpp)
+target_link_libraries(${TARGET} PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT} absl::flags hw_grpc_proto
   absl::flags_parse
   gRPC::${_REFLECTION}
   gRPC::${_GRPC_GRPCPP}
