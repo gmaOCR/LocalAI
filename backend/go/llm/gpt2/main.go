@@ -1,11 +1,11 @@
 package main
 
-// GRPC Falcon server
-
 // Note: this is started internally by LocalAI and a server is allocated for each model
 
 import (
 	"flag"
+
+	transformers "github.com/go-skynet/LocalAI/backend/go/llm/transformers"
 
 	grpc "github.com/go-skynet/LocalAI/pkg/grpc"
 )
@@ -17,7 +17,7 @@ var (
 func main() {
 	flag.Parse()
 
-	if err := grpc.StartServer(*addr, &LLM{}); err != nil {
+	if err := grpc.StartServer(*addr, &transformers.GPT2{}); err != nil {
 		panic(err)
 	}
 }

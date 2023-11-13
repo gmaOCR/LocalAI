@@ -14,93 +14,10 @@ service Backend {
   rpc PredictStream(PredictOptions) returns (stream Reply) {}
   rpc Embedding(PredictOptions) returns (EmbeddingResult) {}
   rpc GenerateImage(GenerateImageRequest) returns (Result) {}
-  rpc GenerateVideo(GenerateVideoRequest) returns (Result) {}
   rpc AudioTranscription(TranscriptRequest) returns (TranscriptResult) {}
   rpc TTS(TTSRequest) returns (Result) {}
-  rpc SoundGeneration(SoundGenerationRequest) returns (Result) {}
   rpc TokenizeString(PredictOptions) returns (TokenizationResponse) {}
   rpc Status(HealthMessage) returns (StatusResponse) {}
-
-  rpc StoresSet(StoresSetOptions) returns (Result) {}
-  rpc StoresDelete(StoresDeleteOptions) returns (Result) {}
-  rpc StoresGet(StoresGetOptions) returns (StoresGetResult) {}
-  rpc StoresFind(StoresFindOptions) returns (StoresFindResult) {}
-
-  rpc Rerank(RerankRequest) returns (RerankResult) {}
-
-  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
-
-  rpc VAD(VADRequest) returns (VADResponse) {}
-}
-
-// Define the empty request
-message MetricsRequest {}
-
-message MetricsResponse {
-  int32 slot_id = 1;
-  string prompt_json_for_slot = 2;  // Stores the prompt as a JSON string.
-  float tokens_per_second = 3;
-  int32 tokens_generated = 4;
-  int32 prompt_tokens_processed = 5;
-}
-
-message RerankRequest {
-  string query = 1;
-  repeated string documents = 2;
-  int32 top_n = 3;
-}
-
-message RerankResult {
-  Usage usage = 1;
-  repeated DocumentResult results = 2;
-}
-
-message Usage {
-  int32 total_tokens = 1;
-  int32 prompt_tokens = 2;
-}
-
-message DocumentResult {
-  int32 index = 1;
-  string text = 2;
-  float relevance_score = 3;
-}
-
-message StoresKey {
-  repeated float Floats = 1;
-}
-
-message StoresValue {
-  bytes Bytes = 1;
-}
-
-message StoresSetOptions {
-  repeated StoresKey Keys = 1;
-  repeated StoresValue Values = 2;
-}
-
-message StoresDeleteOptions {
-  repeated StoresKey Keys = 1;
-}
-
-message StoresGetOptions {
-  repeated StoresKey Keys = 1;
-}
-
-message StoresGetResult {
-  repeated StoresKey Keys = 1;
-  repeated StoresValue Values = 2;
-}
-
-message StoresFindOptions {
-  StoresKey Key = 1;
-  int32 TopK = 2;
-}
-
-message StoresFindResult {
-  repeated StoresKey Keys = 1;
-  repeated StoresValue Values = 2;
-  repeated float Similarities = 3;
 }
 
 message HealthMessage {}
@@ -148,25 +65,11 @@ message PredictOptions {
   string NegativePrompt = 40;
   int32 NDraft = 41;
   repeated string Images = 42;
-  bool UseTokenizerTemplate = 43;
-  repeated Message Messages = 44;
-  repeated string Videos = 45;
-  repeated string Audios = 46;
-  string CorrelationId = 47;
 }
 
 // The response message containing the result
 message Reply {
   bytes message = 1;
-  int32 tokens = 2;
-  int32 prompt_tokens = 3;
-  double timing_prompt_processing = 4;
-  double timing_token_generation = 5;
-  bytes audio = 6;
-}
-
-message GrammarTrigger {
-  string word = 1;
 }
 
 message ModelOptions {
@@ -192,7 +95,11 @@ message ModelOptions {
   int32 NGQA = 20;
   string ModelFile = 21;
 
-
+  // AutoGPTQ
+  string Device = 22;
+  bool UseTriton = 23;
+  string ModelBaseName = 24;
+  bool UseFastTokenizer = 25;
 
   // Diffusers
   string PipelineType = 26;
@@ -203,8 +110,8 @@ message ModelOptions {
   string CLIPModel = 31;
   string CLIPSubfolder = 32;
   int32 CLIPSkip = 33;
-  string ControlNet = 48;
 
+  // RWKV
   string Tokenizer = 34;
 
   // LLM (llama.cpp)
@@ -214,23 +121,11 @@ message ModelOptions {
 
   bool NoMulMatQ = 37;
   string DraftModel = 39;
-
+  
   string AudioPath = 38;
 
   // vllm
   string Quantization = 40;
-  float  GPUMemoryUtilization = 50;
-  bool   TrustRemoteCode = 51;
-  bool   EnforceEager = 52;
-  int32  SwapSpace = 53;
-  int32  MaxModelLen = 54;
-  int32  TensorParallelSize = 55;
-  string LoadFormat = 58;
-  bool   DisableLogStatus = 66;
-  string DType = 67;
-  int32  LimitImagePerPrompt = 68;
-  int32  LimitVideoPerPrompt = 69;
-  int32  LimitAudioPerPrompt = 70;
 
   string MMProj = 41;
 
@@ -239,27 +134,6 @@ message ModelOptions {
   float YarnAttnFactor = 45;
   float YarnBetaFast = 46;
   float YarnBetaSlow = 47;
-
-  string Type = 49;
-
-  bool FlashAttention = 56;
-  bool NoKVOffload = 57;
-
-  string ModelPath = 59;
-
-  repeated string LoraAdapters = 60;
-  repeated float LoraScales = 61;
-
-  repeated string Options = 62;
-
-  string CacheTypeKey = 63;
-  string CacheTypeValue = 64;
-
-  repeated GrammarTrigger GrammarTriggers = 65;
-
-  bool Reranking = 71;
-
-  repeated string Overrides = 72;
 }
 
 message Result {
@@ -275,7 +149,6 @@ message TranscriptRequest {
   string dst = 2;
   string language = 3;
   uint32 threads = 4;
-  bool translate = 5;
 }
 
 message TranscriptResult {
@@ -307,49 +180,10 @@ message GenerateImageRequest {
   int32 CLIPSkip = 11;
 }
 
-message GenerateVideoRequest {
-  string prompt = 1;
-  string start_image = 2;  // Path or base64 encoded image for the start frame
-  string end_image = 3;    // Path or base64 encoded image for the end frame
-  int32 width = 4;
-  int32 height = 5;
-  int32 num_frames = 6;    // Number of frames to generate
-  int32 fps = 7;          // Frames per second
-  int32 seed = 8;
-  float cfg_scale = 9;    // Classifier-free guidance scale
-  string dst = 10;        // Output path for the generated video
-}
-
 message TTSRequest {
   string text = 1;
   string model = 2;
   string dst = 3;
-  string voice = 4;
-  optional string language = 5;
-}
-
-message VADRequest {
-  repeated float audio = 1;
-}
-
-message VADSegment {
-  float start = 1;
-  float end = 2;
-}
-
-message VADResponse {
-  repeated VADSegment segments = 1;
-}
-
-message SoundGenerationRequest {
-  string text = 1;
-  string model = 2;
-  string dst = 3;
-  optional float duration = 4;
-  optional float temperature = 5;
-  optional bool sample = 6;
-  optional string src = 7;
-  optional int32 src_divisor = 8;
 }
 
 message TokenizationResponse {
@@ -371,9 +205,4 @@ message StatusResponse {
   }
   State state = 1;
   MemoryUsageData memory = 2;
-}
-
-message Message {
-  string role = 1;
-  string content = 2;
 }

@@ -1,7 +1,5 @@
 package main
 
-// GRPC Falcon server
-
 // Note: this is started internally by LocalAI and a server is allocated for each model
 
 import (
@@ -17,7 +15,7 @@ var (
 func main() {
 	flag.Parse()
 
-	if err := grpc.StartServer(*addr, &LLM{}); err != nil {
+	if err := grpc.StartServer(*addr, &Embeddings{}); err != nil {
 		panic(err)
 	}
 }

@@ -4,7 +4,6 @@ package main
 // It is meant to be used by the main executable that is the server for the specific backend type (falcon, gpt3, etc)
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/go-skynet/LocalAI/pkg/grpc/base"
 	pb "github.com/go-skynet/LocalAI/pkg/grpc/proto"
@@ -14,8 +13,7 @@ import (
 type LLM struct {
 	base.SingleThread
 
-	llama      *llama.LLama
-	draftModel *llama.LLama
+	llama *llama.LLama
 }
 
 func (llm *LLM) Load(opts *pb.ModelOptions) error {
@@ -34,19 +32,12 @@ func (llm *LLM) Load(opts *pb.ModelOptions) error {
 		llama.WithRopeFreqScale(ropeFreqScale),
 	}
 
-	if opts.NoMulMatQ {
-		llamaOpts = append(llamaOpts, llama.SetMulMatQ(false))
+	if opts.NGQA != 0 {
+		llamaOpts = append(llamaOpts, llama.WithGQA(int(opts.NGQA)))
 	}
 
-	// Get base path of opts.ModelFile and use the same for lora (assume the same path)
-	basePath := filepath.Dir(opts.ModelFile)
-
-	if opts.LoraAdapter != "" {
-		llamaOpts = append(llamaOpts, llama.SetLoraAdapter(filepath.Join(basePath, opts.LoraAdapter)))
-	}
-
-	if opts.LoraBase != "" {
-		llamaOpts = append(llamaOpts, llama.SetLoraBase(filepath.Join(basePath, opts.LoraBase)))
+	if opts.RMSNormEps != 0 {
+		llamaOpts = append(llamaOpts, llama.WithRMSNormEPS(opts.RMSNormEps))
 	}
 
 	if opts.ContextSize != 0 {
@@ -79,27 +70,7 @@ func (llm *LLM) Load(opts *pb.ModelOptions) error {
 		llamaOpts = append(llamaOpts, llama.EnabelLowVRAM)
 	}
 
-	if opts.DraftModel != "" {
-		// https://github.com/ggerganov/llama.cpp/blob/71ca2fad7d6c0ef95ef9944fb3a1a843e481f314/examples/speculative/speculative.cpp#L40
-		llamaOpts = append(llamaOpts, llama.SetPerplexity(true))
-	}
-
 	model, err := llama.New(opts.ModelFile, llamaOpts...)
-
-	if opts.DraftModel != "" {
-		// opts.DraftModel is relative to opts.ModelFile, so we need to get the basepath of opts.ModelFile
-		if !filepath.IsAbs(opts.DraftModel) {
-			dir := filepath.Dir(opts.ModelFile)
-			opts.DraftModel = filepath.Join(dir, opts.DraftModel)
-		}
-
-		draftModel, err := llama.New(opts.DraftModel, llamaOpts...)
-		if err != nil {
-			return err
-		}
-		llm.draftModel = draftModel
-	}
-
 	llm.llama = model
 
 	return err
@@ -183,9 +154,6 @@ func buildPredictOptions(opts *pb.PredictOptions) []llama.PredictOption {
 		predictOptions = append(predictOptions, llama.SetSeed(int(opts.Seed)))
 	}
 
-	if opts.NDraft != 0 {
-		predictOptions = append(predictOptions, llama.SetNDraft(int(opts.NDraft)))
-	}
 	//predictOptions = append(predictOptions, llama.SetLogitBias(c.Seed))
 
 	predictOptions = append(predictOptions, llama.SetFrequencyPenalty(opts.FrequencyPenalty))
@@ -199,9 +167,6 @@ func buildPredictOptions(opts *pb.PredictOptions) []llama.PredictOption {
 }
 
 func (llm *LLM) Predict(opts *pb.PredictOptions) (string, error) {
-	if llm.draftModel != nil {
-		return llm.llama.SpeculativeSampling(llm.draftModel, opts.Prompt, buildPredictOptions(opts)...)
-	}
 	return llm.llama.Predict(opts.Prompt, buildPredictOptions(opts)...)
 }
 
@@ -214,13 +179,7 @@ func (llm *LLM) PredictStream(opts *pb.PredictOptions, results chan string) erro
 	}))
 
 	go func() {
-		var err error
-		if llm.draftModel != nil {
-			_, err = llm.llama.SpeculativeSampling(llm.draftModel, opts.Prompt, buildPredictOptions(opts)...)
-		} else {
-			_, err = llm.llama.Predict(opts.Prompt, predictOptions...)
-		}
-
+		_, err := llm.llama.Predict(opts.Prompt, predictOptions...)
 		if err != nil {
 			fmt.Println("err: ", err)
 		}
@@ -242,16 +201,4 @@ func (llm *LLM) Embeddings(opts *pb.PredictOptions) ([]float32, error) {
 	}
 
 	return llm.llama.Embeddings(opts.Embeddings, predictOptions...)
-}
-
-func (llm *LLM) TokenizeString(opts *pb.PredictOptions) (pb.TokenizationResponse, error) {
-	predictOptions := buildPredictOptions(opts)
-	l, tokens, err := llm.llama.TokenizeString(opts.Prompt, predictOptions...)
-	if err != nil {
-		return pb.TokenizationResponse{}, err
-	}
-	return pb.TokenizationResponse{
-		Length: l,
-		Tokens: tokens,
-	}, nil
 }
