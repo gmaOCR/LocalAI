@@ -1,11 +1,11 @@
 #!/bin/bash
-set -e
+##
+## A bash script wrapper that runs the transformers server with conda
 
-backend_dir=$(dirname $0)
-if [ -d $backend_dir/common ]; then
-    source $backend_dir/common/libbackend.sh
-else
-    source $backend_dir/../common/libbackend.sh
-fi
+# Activate conda environment
+source activate transformers
 
-runUnittests
+# get the directory where the bash script is located
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+python -m unittest $DIR/test_transformers.py
