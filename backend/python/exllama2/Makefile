@@ -1,23 +1,12 @@
 .PHONY: exllama2
-exllama2: protogen
+exllama2:
+	@echo "Creating virtual environment..."
+	@conda env create --name exllama2 --file exllama2.yml
+	@echo "Virtual environment created."
 	bash install.sh
 
 .PHONY: run
-run: protogen
+run:
 	@echo "Running exllama2..."
 	bash run.sh
 	@echo "exllama2 run."
-
-.PHONY: protogen
-protogen: backend_pb2_grpc.py backend_pb2.py
-
-.PHONY: protogen-clean
-protogen-clean:
-	$(RM) backend_pb2_grpc.py backend_pb2.py
-
-backend_pb2_grpc.py backend_pb2.py:
-	python3 -m grpc_tools.protoc -I../.. -I./ --python_out=. --grpc_python_out=. backend.proto
-
-.PHONY: clean
-clean: protogen-clean
-	$(RM) -r venv source __pycache__
