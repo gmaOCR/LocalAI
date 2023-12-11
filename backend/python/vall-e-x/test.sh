@@ -1,9 +1,9 @@
 #!/bin/bash
 ##
-## A bash script wrapper that runs the bark server with conda
+## A bash script wrapper that runs the ttsvalle server with conda
 
 # Activate conda environment
-source activate ttsbark
+source activate ttsvalle
 
 # get the directory where the bash script is located
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
