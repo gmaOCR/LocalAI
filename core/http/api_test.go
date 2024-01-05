@@ -1,4 +1,4 @@
-package api_test
+package http_test
 
 import (
 	"bytes"
@@ -13,11 +13,12 @@ import (
 	"path/filepath"
 	"runtime"
 
-	. "github.com/go-skynet/LocalAI/api"
-	"github.com/go-skynet/LocalAI/api/options"
-	"github.com/go-skynet/LocalAI/metrics"
+	server "github.com/go-skynet/LocalAI/core/http"
+	"github.com/go-skynet/LocalAI/core/services"
+	"github.com/go-skynet/LocalAI/core/startup"
 	"github.com/go-skynet/LocalAI/pkg/gallery"
 	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/schema"
 	"github.com/go-skynet/LocalAI/pkg/utils"
 	"github.com/gofiber/fiber/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -118,16 +119,15 @@ var backendAssets embed.FS
 var _ = Describe("API test", func() {
 
 	var app *fiber.App
-	var modelLoader *model.ModelLoader
 	var client *openai.Client
 	var client2 *openaigo.Client
 	var c context.Context
 	var cancel context.CancelFunc
 	var tmpdir string
 
-	commonOpts := []options.AppOption{
-		options.WithDebug(true),
-		options.WithDisableMessage(true),
+	commonOpts := []schema.AppOption{
+		schema.WithDebug(true),
+		schema.WithDisableMessage(true),
 	}
 
 	Context("API with ephemeral models", func() {
@@ -136,7 +136,6 @@ var _ = Describe("API test", func() {
 			tmpdir, err = os.MkdirTemp("", "")
 			Expect(err).ToNot(HaveOccurred())
 
-			modelLoader = model.NewModelLoader(tmpdir)
 			c, cancel = context.WithCancel(context.Background())
 
 			g := []gallery.GalleryModel{
@@ -163,15 +162,20 @@ var _ = Describe("API test", func() {
 				},
 			}
 
-			metricsService, err := metrics.SetupMetrics()
+			metricsService, err := services.SetupMetrics()
 			Expect(err).ToNot(HaveOccurred())
 
-			app, err = App(
+			cl, ml, options, err := startup.Startup(
 				append(commonOpts,
-					options.WithMetrics(metricsService),
-					options.WithContext(c),
-					options.WithGalleries(galleries),
-					options.WithModelLoader(modelLoader), options.WithBackendAssets(backendAssets), options.WithBackendAssetsOutput(tmpdir))...)
+					schema.WithMetrics(metricsService),
+					schema.WithContext(c),
+					schema.WithGalleries(galleries),
+					schema.WithModelPath(tmpdir),
+					schema.WithBackendAssets(backendAssets),
+					schema.WithBackendAssetsOutput(tmpdir))...)
+
+			Expect(err).ToNot(HaveOccurred())
+			app, err = server.App(cl, ml, options)
 			Expect(err).ToNot(HaveOccurred())
 			go app.Listen("127.0.0.1:9090")
 
@@ -475,7 +479,6 @@ var _ = Describe("API test", func() {
 			tmpdir, err = os.MkdirTemp("", "")
 			Expect(err).ToNot(HaveOccurred())
 
-			modelLoader = model.NewModelLoader(tmpdir)
 			c, cancel = context.WithCancel(context.Background())
 
 			galleries := []gallery.Gallery{
@@ -485,21 +488,22 @@ var _ = Describe("API test", func() {
 				},
 			}
 
-			metricsService, err := metrics.SetupMetrics()
+			metricsService, err := services.SetupMetrics()
 			Expect(err).ToNot(HaveOccurred())
 
-			app, err = App(
+			cl, ml, options, err := startup.Startup(
 				append(commonOpts,
-					options.WithContext(c),
-					options.WithMetrics(metricsService),
-					options.WithAudioDir(tmpdir),
-					options.WithImageDir(tmpdir),
-					options.WithGalleries(galleries),
-					options.WithModelLoader(modelLoader),
-					options.WithBackendAssets(backendAssets),
-					options.WithBackendAssetsOutput(tmpdir))...,
+					schema.WithContext(c),
+					schema.WithMetrics(metricsService),
+					schema.WithAudioDir(tmpdir),
+					schema.WithImageDir(tmpdir),
+					schema.WithGalleries(galleries),
+					schema.WithModelPath(tmpdir),
+					schema.WithBackendAssets(backendAssets),
+					schema.WithBackendAssetsOutput(tmpdir))...,
 			)
 			Expect(err).ToNot(HaveOccurred())
+			app, err = server.App(cl, ml, options)
 			go app.Listen("127.0.0.1:9090")
 
 			defaultConfig := openai.DefaultConfig("")
@@ -590,19 +594,20 @@ var _ = Describe("API test", func() {
 
 	Context("API query", func() {
 		BeforeEach(func() {
-			modelLoader = model.NewModelLoader(os.Getenv("MODELS_PATH"))
 			c, cancel = context.WithCancel(context.Background())
 
-			metricsService, err := metrics.SetupMetrics()
+			metricsService, err := services.SetupMetrics()
 			Expect(err).ToNot(HaveOccurred())
 
-			app, err = App(
+			cl, ml, options, err := startup.Startup(
 				append(commonOpts,
-					options.WithExternalBackend("huggingface", os.Getenv("HUGGINGFACE_GRPC")),
-					options.WithContext(c),
-					options.WithModelLoader(modelLoader),
-					options.WithMetrics(metricsService),
+					schema.WithExternalBackend("huggingface", os.Getenv("HUGGINGFACE_GRPC")),
+					schema.WithContext(c),
+					schema.WithModelPath(os.Getenv("MODELS_PATH")),
+					schema.WithMetrics(metricsService),
 				)...)
+			Expect(err).ToNot(HaveOccurred())
+			app, err = server.App(cl, ml, options)
 			Expect(err).ToNot(HaveOccurred())
 			go app.Listen("127.0.0.1:9090")
 
@@ -802,19 +807,20 @@ var _ = Describe("API test", func() {
 
 	Context("Config file", func() {
 		BeforeEach(func() {
-			modelLoader = model.NewModelLoader(os.Getenv("MODELS_PATH"))
 			c, cancel = context.WithCancel(context.Background())
 
-			metricsService, err := metrics.SetupMetrics()
+			metricsService, err := services.SetupMetrics()
 			Expect(err).ToNot(HaveOccurred())
 
-			app, err = App(
+			cl, ml, options, err := startup.Startup(
 				append(commonOpts,
-					options.WithContext(c),
-					options.WithMetrics(metricsService),
-					options.WithModelLoader(modelLoader),
-					options.WithConfigFile(os.Getenv("CONFIG_FILE")))...,
+					schema.WithContext(c),
+					schema.WithMetrics(metricsService),
+					schema.WithModelPath(os.Getenv("MODELS_PATH")),
+					schema.WithConfigFile(os.Getenv("CONFIG_FILE")))...,
 			)
+			Expect(err).ToNot(HaveOccurred())
+			app, err = server.App(cl, ml, options)
 			Expect(err).ToNot(HaveOccurred())
 			go app.Listen("127.0.0.1:9090")
 

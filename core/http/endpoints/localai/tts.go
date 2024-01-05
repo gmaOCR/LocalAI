@@ -1,74 +1,25 @@
 package localai
 
 import (
-	"github.com/mudler/LocalAI/core/backend"
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/http/middleware"
-	"github.com/mudler/LocalAI/pkg/model"
-
+	"github.com/go-skynet/LocalAI/core/backend"
+	"github.com/go-skynet/LocalAI/core/services"
+	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/schema"
 	"github.com/gofiber/fiber/v2"
-	"github.com/mudler/LocalAI/core/schema"
-	"github.com/rs/zerolog/log"
-
-	"github.com/mudler/LocalAI/patch"
-
-	"github.com/mudler/LocalAI/pkg/utils"
 )
 
-// TTSEndpoint is the OpenAI Speech API endpoint https://platform.openai.com/docs/api-reference/audio/createSpeech
-//
-//		@Summary	Generates audio from the input text.
-//	 	@Accept json
-//	 	@Produce audio/x-wav
-//		@Param		request	body		schema.TTSRequest	true	"query params"
-//		@Success	200		{string}	binary				"generated audio/wav file"
-//		@Router		/v1/audio/speech [post]
-//		@Router		/tts [post]
-func TTSEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+func TTSEndpoint(cl *services.ConfigLoader, ml *model.ModelLoader, so *schema.StartupOptions) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		input, ok := c.Locals(middleware.CONTEXT_LOCALS_KEY_LOCALAI_REQUEST).(*schema.TTSRequest)
-		if !ok || input.Model == "" {
-			return fiber.ErrBadRequest
-		}
-
-		cfg, ok := c.Locals(middleware.CONTEXT_LOCALS_KEY_MODEL_CONFIG).(*config.BackendConfig)
-		if !ok || cfg == nil {
-			return fiber.ErrBadRequest
-		}
-
-		log.Debug().Str("model", input.Model).Msg("LocalAI TTS Request received")
-
-		if cfg.Backend == "" {
-			if input.Backend != "" {
-				cfg.Backend = input.Backend
-			} else {
-				cfg.Backend = model.PiperBackend
-			}
-		}
-
-		if input.Language != "" {
-			cfg.Language = input.Language
-		}
-
-		if input.Voice != "" {
-			cfg.Voice = input.Voice
-		}
-
-		// --- Patch langue TTS ---
-		input.Input = patch.ApplyTTSLanguageFilter(input.Input, cfg.Language)
-		// --- Fin patch ---
-
-		filePath, _, err := backend.ModelTTS(input.Input, cfg.Voice, cfg.Language, ml, appConfig, *cfg)
-		if err != nil {
+		input := new(schema.TTSRequest)
+		// Get input data from the request body
+		if err := c.BodyParser(input); err != nil {
 			return err
 		}
 
-		// Convert generated file to target format
-		filePath, err = utils.AudioConvert(filePath, input.Format)
+		filePath, _, err := backend.ModelTTS(input.Backend, input.Input, input.Model, ml, so)
 		if err != nil {
 			return err
 		}
-
 		return c.Download(filePath)
 	}
 }

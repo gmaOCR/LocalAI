@@ -1,16 +1,11 @@
-package api_config
+package schema
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
-	"strings"
-	"sync"
 
 	"github.com/go-skynet/LocalAI/pkg/utils"
-	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -152,11 +147,6 @@ type TemplateConfig struct {
 	Functions   string `yaml:"function"`
 }
 
-type ConfigLoader struct {
-	configs map[string]Config
-	sync.Mutex
-}
-
 func (c *Config) SetFunctionCallString(s string) {
 	c.functionCallString = s
 }
@@ -193,11 +183,6 @@ func DefaultConfig(modelFile string) *Config {
 	}
 }
 
-func NewConfigLoader() *ConfigLoader {
-	return &ConfigLoader{
-		configs: make(map[string]Config),
-	}
-}
 func ReadConfigFile(file string) ([]*Config, error) {
 	c := &[]*Config{}
 	f, err := os.ReadFile(file)
@@ -211,7 +196,7 @@ func ReadConfigFile(file string) ([]*Config, error) {
 	return *c, nil
 }
 
-func ReadConfig(file string) (*Config, error) {
+func ReadSingleConfigFile(file string) (*Config, error) {
 	c := &Config{}
 	f, err := os.ReadFile(file)
 	if err != nil {
@@ -224,136 +209,192 @@ func ReadConfig(file string) (*Config, error) {
 	return c, nil
 }
 
-func (cm *ConfigLoader) LoadConfigFile(file string) error {
-	cm.Lock()
-	defer cm.Unlock()
-	c, err := ReadConfigFile(file)
-	if err != nil {
-		return fmt.Errorf("cannot load config file: %w", err)
+func UpdateConfigFromOpenAIRequest(config *Config, input *OpenAIRequest) {
+	if input.Echo {
+		config.Echo = input.Echo
+	}
+	if input.TopK != 0 {
+		config.TopK = input.TopK
+	}
+	if input.TopP != 0 {
+		config.TopP = input.TopP
 	}
 
-	for _, cc := range c {
-		cm.configs[cc.Name] = *cc
-	}
-	return nil
-}
-
-func (cm *ConfigLoader) LoadConfig(file string) error {
-	cm.Lock()
-	defer cm.Unlock()
-	c, err := ReadConfig(file)
-	if err != nil {
-		return fmt.Errorf("cannot read config file: %w", err)
+	if input.Backend != "" {
+		config.Backend = input.Backend
 	}
 
-	cm.configs[c.Name] = *c
-	return nil
-}
-
-func (cm *ConfigLoader) GetConfig(m string) (Config, bool) {
-	cm.Lock()
-	defer cm.Unlock()
-	v, exists := cm.configs[m]
-	return v, exists
-}
-
-func (cm *ConfigLoader) GetAllConfigs() []Config {
-	cm.Lock()
-	defer cm.Unlock()
-	var res []Config
-	for _, v := range cm.configs {
-		res = append(res, v)
-	}
-	return res
-}
-
-func (cm *ConfigLoader) ListConfigs() []string {
-	cm.Lock()
-	defer cm.Unlock()
-	var res []string
-	for k := range cm.configs {
-		res = append(res, k)
-	}
-	return res
-}
-
-// Preload prepare models if they are not local but url or huggingface repositories
-func (cm *ConfigLoader) Preload(modelPath string) error {
-	cm.Lock()
-	defer cm.Unlock()
-
-	status := func(fileName, current, total string, percent float64) {
-		utils.DisplayDownloadFunction(fileName, current, total, percent)
+	if input.ClipSkip != 0 {
+		config.Diffusers.ClipSkip = input.ClipSkip
 	}
 
-	log.Info().Msgf("Preloading models from %s", modelPath)
+	if input.ModelBaseName != "" {
+		config.AutoGPTQ.ModelBaseName = input.ModelBaseName
+	}
 
-	for i, config := range cm.configs {
+	if input.NegativePromptScale != 0 {
+		config.NegativePromptScale = input.NegativePromptScale
+	}
 
-		// Download files and verify their SHA
-		for _, file := range config.DownloadFiles {
-			log.Debug().Msgf("Checking %q exists and matches SHA", file.Filename)
+	if input.UseFastTokenizer {
+		config.UseFastTokenizer = input.UseFastTokenizer
+	}
 
-			if err := utils.VerifyPath(file.Filename, modelPath); err != nil {
-				return err
-			}
-			// Create file path
-			filePath := filepath.Join(modelPath, file.Filename)
+	if input.NegativePrompt != "" {
+		config.NegativePrompt = input.NegativePrompt
+	}
 
-			if err := utils.DownloadFile(file.URI, filePath, file.SHA256, status); err != nil {
-				return err
+	if input.RopeFreqBase != 0 {
+		config.RopeFreqBase = input.RopeFreqBase
+	}
+
+	if input.RopeFreqScale != 0 {
+		config.RopeFreqScale = input.RopeFreqScale
+	}
+
+	if input.Grammar != "" {
+		config.Grammar = input.Grammar
+	}
+
+	if input.Temperature != 0 {
+		config.Temperature = input.Temperature
+	}
+
+	if input.Maxtokens != 0 {
+		config.Maxtokens = input.Maxtokens
+	}
+
+	if input.RepeatPenalty != 0 {
+		config.RepeatPenalty = input.RepeatPenalty
+	}
+
+	if input.Keep != 0 {
+		config.Keep = input.Keep
+	}
+
+	if input.Batch != 0 {
+		config.Batch = input.Batch
+	}
+
+	if input.F16 {
+		config.F16 = input.F16
+	}
+
+	if input.IgnoreEOS {
+		config.IgnoreEOS = input.IgnoreEOS
+	}
+
+	if input.Seed != 0 {
+		config.Seed = input.Seed
+	}
+
+	if input.Mirostat != 0 {
+		config.LLMConfig.Mirostat = input.Mirostat
+	}
+
+	if input.MirostatETA != 0 {
+		config.LLMConfig.MirostatETA = input.MirostatETA
+	}
+
+	if input.MirostatTAU != 0 {
+		config.LLMConfig.MirostatTAU = input.MirostatTAU
+	}
+
+	if input.TypicalP != 0 {
+		config.TypicalP = input.TypicalP
+	}
+
+	switch stop := input.Stop.(type) {
+	case string:
+		if stop != "" {
+			config.StopWords = append(config.StopWords, stop)
+		}
+	case []interface{}:
+		for _, pp := range stop {
+			if s, ok := pp.(string); ok {
+				config.StopWords = append(config.StopWords, s)
 			}
 		}
+	}
 
-		modelURL := config.PredictionOptions.Model
-		modelURL = utils.ConvertURL(modelURL)
+	// Decode each request's message content
+	index := 0
+	for i, m := range input.Messages {
+		switch content := m.Content.(type) {
+		case string:
+			input.Messages[i].StringContent = content
+		case []interface{}:
+			dat, _ := json.Marshal(content)
+			c := []Content{}
+			json.Unmarshal(dat, &c)
+			for _, pp := range c {
+				if pp.Type == "text" {
+					input.Messages[i].StringContent = pp.Text
+				} else if pp.Type == "image_url" {
+					// Detect if pp.ImageURL is an URL, if it is download the image and encode it in base64:
+					base64, err := utils.GetBase64Image(pp.ImageURL.URL)
+					if err == nil {
+						input.Messages[i].StringImages = append(input.Messages[i].StringImages, base64) // TODO: make sure that we only return base64 stuff
+						// set a placeholder for each image
+						input.Messages[i].StringContent = fmt.Sprintf("[img-%d]", index) + input.Messages[i].StringContent
+						index++
+					} else {
+						fmt.Print("Failed encoding image", err)
+					}
 
-		if utils.LooksLikeURL(modelURL) {
-			// md5 of model name
-			md5Name := utils.MD5(modelURL)
-
-			// check if file exists
-			if _, err := os.Stat(filepath.Join(modelPath, md5Name)); errors.Is(err, os.ErrNotExist) {
-				err := utils.DownloadFile(modelURL, filepath.Join(modelPath, md5Name), "", status)
-				if err != nil {
-					return err
 				}
 			}
-
-			cc := cm.configs[i]
-			c := &cc
-			c.PredictionOptions.Model = md5Name
-			cm.configs[i] = *c
-		}
-	}
-	return nil
-}
-
-func (cm *ConfigLoader) LoadConfigs(path string) error {
-	cm.Lock()
-	defer cm.Unlock()
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return err
-	}
-	files := make([]fs.FileInfo, 0, len(entries))
-	for _, entry := range entries {
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		files = append(files, info)
-	}
-	for _, file := range files {
-		// Skip templates, YAML and .keep files
-		if !strings.Contains(file.Name(), ".yaml") && !strings.Contains(file.Name(), ".yml") {
-			continue
-		}
-		c, err := ReadConfig(filepath.Join(path, file.Name()))
-		if err == nil {
-			cm.configs[c.Name] = *c
 		}
 	}
 
-	return nil
+	// TODO: check that this was merged correctly? I _think_ it is?
+	switch inputs := input.Input.(type) {
+	case string:
+		if inputs != "" {
+			config.InputStrings = append(config.InputStrings, inputs)
+		}
+	case []interface{}:
+		for _, pp := range inputs {
+			switch i := pp.(type) {
+			case string:
+				config.InputStrings = append(config.InputStrings, i)
+			case []interface{}:
+				tokens := []int{}
+				for _, ii := range i {
+					tokens = append(tokens, int(ii.(float64)))
+				}
+				config.InputToken = append(config.InputToken, tokens)
+			}
+		}
+	}
+
+	// Can be either a string or an object
+	switch fnc := input.FunctionCall.(type) {
+	case string:
+		if fnc != "" {
+			config.SetFunctionCallString(fnc)
+		}
+	case map[string]interface{}:
+		var name string
+		n, exists := fnc["name"]
+		if exists {
+			nn, e := n.(string)
+			if e {
+				name = nn
+			}
+		}
+		config.SetFunctionCallNameString(name)
+	}
+
+	switch p := input.Prompt.(type) {
+	case string:
+		config.PromptStrings = append(config.PromptStrings, p)
+	case []interface{}:
+		for _, pp := range p {
+			if s, ok := pp.(string); ok {
+				config.PromptStrings = append(config.PromptStrings, s)
+			}
+		}
+	}
+
 }

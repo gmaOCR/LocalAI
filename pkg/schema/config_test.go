@@ -1,11 +1,10 @@
-package api_config_test
+package schema_test
 
 import (
 	"os"
 
-	. "github.com/go-skynet/LocalAI/api/config"
-	"github.com/go-skynet/LocalAI/api/options"
-	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/core/services"
+	"github.com/go-skynet/LocalAI/pkg/schema"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -19,7 +18,7 @@ var _ = Describe("Test cases for config related functions", func() {
 	Context("Test Read configuration functions", func() {
 		configFile = os.Getenv("CONFIG_FILE")
 		It("Test ReadConfigFile", func() {
-			config, err := ReadConfigFile(configFile)
+			config, err := schema.ReadConfigFile(configFile)
 			Expect(err).To(BeNil())
 			Expect(config).ToNot(BeNil())
 			// two configs in config.yaml
@@ -28,12 +27,8 @@ var _ = Describe("Test cases for config related functions", func() {
 		})
 
 		It("Test LoadConfigs", func() {
-			cm := NewConfigLoader()
-			opts := options.NewOptions()
-			modelLoader := model.NewModelLoader(os.Getenv("MODELS_PATH"))
-			options.WithModelLoader(modelLoader)(opts)
-
-			err := cm.LoadConfigs(opts.Loader.ModelPath)
+			cm := services.NewConfigLoader()
+			err := cm.LoadConfigs(os.Getenv("MODELS_PATH"))
 			Expect(err).To(BeNil())
 			Expect(cm.ListConfigs()).ToNot(BeNil())
 

@@ -2,76 +2,28 @@ package openai
 
 import (
 	"encoding/json"
-	"time"
+	"fmt"
 
-	"github.com/mudler/LocalAI/core/backend"
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/http/middleware"
-	"github.com/mudler/LocalAI/pkg/model"
-
-	"github.com/google/uuid"
-	"github.com/mudler/LocalAI/core/schema"
+	"github.com/go-skynet/LocalAI/core/backend"
+	"github.com/go-skynet/LocalAI/core/services"
+	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/schema"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
-// EmbeddingsEndpoint is the OpenAI Embeddings API endpoint https://platform.openai.com/docs/api-reference/embeddings
-// @Summary Get a vector representation of a given input that can be easily consumed by machine learning models and algorithms.
-// @Param request body schema.OpenAIRequest true "query params"
-// @Success 200 {object} schema.OpenAIResponse "Response"
-// @Router /v1/embeddings [post]
-func EmbeddingsEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+// https://platform.openai.com/docs/api-reference/embeddings
+func EmbeddingsEndpoint(cl *services.ConfigLoader, ml *model.ModelLoader, so *schema.StartupOptions) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		input, ok := c.Locals(middleware.CONTEXT_LOCALS_KEY_LOCALAI_REQUEST).(*schema.OpenAIRequest)
-		if !ok || input.Model == "" {
-			return fiber.ErrBadRequest
+		modelFile, input, err := readInput(c, so, ml, true)
+		if err != nil {
+			return fmt.Errorf("failed reading parameters from request:%w", err)
 		}
 
-		config, ok := c.Locals(middleware.CONTEXT_LOCALS_KEY_MODEL_CONFIG).(*config.BackendConfig)
-		if !ok || config == nil {
-			return fiber.ErrBadRequest
-		}
-
-		log.Debug().Msgf("Parameter Config: %+v", config)
-		items := []schema.Item{}
-
-		for i, s := range config.InputToken {
-			// get the model function to call for the result
-			embedFn, err := backend.ModelEmbedding("", s, ml, *config, appConfig)
-			if err != nil {
-				return err
-			}
-
-			embeddings, err := embedFn()
-			if err != nil {
-				return err
-			}
-			items = append(items, schema.Item{Embedding: embeddings, Index: i, Object: "embedding"})
-		}
-
-		for i, s := range config.InputStrings {
-			// get the model function to call for the result
-			embedFn, err := backend.ModelEmbedding(s, []int{}, ml, *config, appConfig)
-			if err != nil {
-				return err
-			}
-
-			embeddings, err := embedFn()
-			if err != nil {
-				return err
-			}
-			items = append(items, schema.Item{Embedding: embeddings, Index: i, Object: "embedding"})
-		}
-
-		id := uuid.New().String()
-		created := int(time.Now().Unix())
-		resp := &schema.OpenAIResponse{
-			ID:      id,
-			Created: created,
-			Model:   input.Model, // we have to return what the user sent here, due to OpenAI spec.
-			Data:    items,
-			Object:  "list",
+		resp, err := backend.EmbeddingOpenAIRequest(modelFile, input, cl, ml, so)
+		if err != nil {
+			return err
 		}
 
 		jsonResult, _ := json.Marshal(resp)

@@ -6,72 +6,74 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mudler/LocalAI/core/config"
-
-	"github.com/mudler/LocalAI/pkg/grpc/proto"
-	"github.com/mudler/LocalAI/pkg/model"
-	"github.com/mudler/LocalAI/pkg/utils"
+	"github.com/go-skynet/LocalAI/pkg/grpc/proto"
+	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/schema"
+	"github.com/go-skynet/LocalAI/pkg/utils"
 )
 
-func ModelTTS(
-	text,
-	voice,
-	language string,
-	loader *model.ModelLoader,
-	appConfig *config.ApplicationConfig,
-	backendConfig config.BackendConfig,
-) (string, *proto.Result, error) {
-	opts := ModelOptions(backendConfig, appConfig, model.WithDefaultBackendString(model.PiperBackend))
-	ttsModel, err := loader.Load(opts...)
+func generateUniqueFileName(dir, baseName, ext string) string {
+	counter := 1
+	fileName := baseName + ext
+
+	for {
+		filePath := filepath.Join(dir, fileName)
+		_, err := os.Stat(filePath)
+		if os.IsNotExist(err) {
+			return fileName
+		}
+
+		counter++
+		fileName = fmt.Sprintf("%s_%d%s", baseName, counter, ext)
+	}
+}
+
+func ModelTTS(backend, text, modelFile string, loader *model.ModelLoader, o *schema.StartupOptions) (string, *proto.Result, error) {
+	bb := backend
+	if bb == "" {
+		bb = model.PiperBackend
+	}
+	opts := modelOpts(schema.Config{}, o, []model.Option{
+		model.WithBackendString(bb),
+		model.WithModel(modelFile),
+		model.WithContext(o.Context),
+		model.WithAssetDir(o.AssetsDestination),
+		model.WithExternalBackends(o.ExternalGRPCBackends, false),
+	})
+	piperModel, err := loader.BackendLoader(opts...)
 	if err != nil {
 		return "", nil, err
 	}
-	defer loader.Close()
 
-	if ttsModel == nil {
-		return "", nil, fmt.Errorf("could not load tts model %q", backendConfig.Model)
+	if piperModel == nil {
+		return "", nil, fmt.Errorf("could not load piper model")
 	}
 
-	audioDir := filepath.Join(appConfig.GeneratedContentDir, "audio")
-	if err := os.MkdirAll(audioDir, 0750); err != nil {
+	if err := os.MkdirAll(o.AudioDir, 0755); err != nil {
 		return "", nil, fmt.Errorf("failed creating audio directory: %s", err)
 	}
 
-	fileName := utils.GenerateUniqueFileName(audioDir, "tts", ".wav")
-	filePath := filepath.Join(audioDir, fileName)
+	fileName := generateUniqueFileName(o.AudioDir, "piper", ".wav")
+	filePath := filepath.Join(o.AudioDir, fileName)
 
-	// We join the model name to the model path here. This seems to only be done for TTS and is HIGHLY suspect.
-	// This should be addressed in a follow up PR soon.
-	// Copying it over nearly verbatim, as TTS backends are not functional without this.
+	// If the model file is not empty, we pass it joined with the model path
 	modelPath := ""
-	// Checking first that it exists and is not outside ModelPath
-	// TODO: we should actually first check if the modelFile is looking like
-	// a FS path
-	mp := filepath.Join(loader.ModelPath, backendConfig.Model)
-	if _, err := os.Stat(mp); err == nil {
-		if err := utils.VerifyPath(mp, appConfig.ModelPath); err != nil {
-			return "", nil, err
+	if modelFile != "" {
+		if bb != model.TransformersMusicGen {
+			modelPath = filepath.Join(o.ModelPath, modelFile)
+			if err := utils.VerifyPath(modelPath, o.ModelPath); err != nil {
+				return "", nil, err
+			}
+		} else {
+			modelPath = modelFile
 		}
-		modelPath = mp
-	} else {
-		modelPath = backendConfig.Model // skip this step if it fails?????
 	}
 
-	res, err := ttsModel.TTS(context.Background(), &proto.TTSRequest{
-		Text:     text,
-		Model:    modelPath,
-		Voice:    voice,
-		Dst:      filePath,
-		Language: &language,
+	res, err := piperModel.TTS(context.Background(), &proto.TTSRequest{
+		Text:  text,
+		Model: modelPath,
+		Dst:   filePath,
 	})
-	if err != nil {
-		return "", nil, err
-	}
-
-	// return RPC error if any
-	if !res.Success {
-		return "", nil, fmt.Errorf(res.Message)
-	}
 
 	return filePath, res, err
 }

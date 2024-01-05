@@ -1,49 +1,69 @@
 package openai
 
 import (
+	"regexp"
+
+	"github.com/go-skynet/LocalAI/core/services"
+	"github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/schema"
 	"github.com/gofiber/fiber/v2"
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/schema"
-	"github.com/mudler/LocalAI/core/services"
-	model "github.com/mudler/LocalAI/pkg/model"
 )
 
-// ListModelsEndpoint is the OpenAI Models API endpoint https://platform.openai.com/docs/api-reference/models
-// @Summary List and describe the various models available in the API.
-// @Success 200 {object} schema.ModelsDataResponse "Response"
-// @Router /v1/models [get]
-func ListModelsEndpoint(bcl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(ctx *fiber.Ctx) error {
+func ListModelsEndpoint(cl *services.ConfigLoader, ml *model.ModelLoader) func(ctx *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		// If blank, no filter is applied.
+		models, err := ml.ListModels()
+		if err != nil {
+			return err
+		}
+		var mm map[string]interface{} = map[string]interface{}{}
+
+		openAIModels := []schema.OpenAIModel{}
+
+		var filterFn func(name string) bool
 		filter := c.Query("filter")
 
-		// By default, exclude any loose files that are already referenced by a configuration file.
-		var policy services.LooseFilePolicy
-		if c.QueryBool("excludeConfigured", true) {
-			policy = services.SKIP_IF_CONFIGURED
+		// If filter is not specified, do not filter the list by model name
+		if filter == "" {
+			filterFn = func(_ string) bool { return true }
 		} else {
-			policy = services.ALWAYS_INCLUDE // This replicates current behavior. TODO: give more options to the user?
+			// If filter _IS_ specified, we compile it to a regex which is used to create the filterFn
+			rxp, err := regexp.Compile(filter)
+			if err != nil {
+				return err
+			}
+			filterFn = func(name string) bool {
+				return rxp.MatchString(name)
+			}
 		}
 
-		filterFn, err := config.BuildNameFilterFn(filter)
-		if err != nil {
-			return err
+		// By default, exclude any loose files that are already referenced by a configuration file.
+		excludeConfigured := c.QueryBool("excludeConfigured", true)
+
+		// Start with the known configurations
+		for _, c := range cl.GetAllConfigs() {
+			if excludeConfigured {
+				mm[c.Model] = nil
+			}
+
+			if filterFn(c.Name) {
+				openAIModels = append(openAIModels, schema.OpenAIModel{ID: c.Name, Object: "model"})
+			}
 		}
 
-		modelNames, err := services.ListModels(bcl, ml, filterFn, policy)
-		if err != nil {
-			return err
+		// Then iterate through the loose files:
+		for _, m := range models {
+			// And only adds them if they shouldn't be skipped.
+			if _, exists := mm[m]; !exists && filterFn(m) {
+				openAIModels = append(openAIModels, schema.OpenAIModel{ID: m, Object: "model"})
+			}
 		}
 
-		// Map from a slice of names to a slice of OpenAIModel response objects
-		dataModels := []schema.OpenAIModel{}
-		for _, m := range modelNames {
-			dataModels = append(dataModels, schema.OpenAIModel{ID: m, Object: "model"})
-		}
-
-		return c.JSON(schema.ModelsDataResponse{
+		return c.JSON(struct {
+			Object string               `json:"object"`
+			Data   []schema.OpenAIModel `json:"data"`
+		}{
 			Object: "list",
-			Data:   dataModels,
+			Data:   openAIModels,
 		})
 	}
 }
