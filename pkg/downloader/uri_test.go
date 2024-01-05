@@ -1,6 +1,7 @@
 package downloader_test
 
 import (
+<<<<<<< HEAD
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
@@ -11,6 +12,9 @@ import (
 	"strconv"
 
 	. "github.com/mudler/LocalAI/pkg/downloader"
+=======
+	. "github.com/go-skynet/LocalAI/pkg/downloader"
+>>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -18,28 +22,43 @@ import (
 var _ = Describe("Gallery API tests", func() {
 	Context("URI", func() {
 		It("parses github with a branch", func() {
+<<<<<<< HEAD
 			uri := URI("github:go-skynet/model-gallery/gpt4all-j.yaml")
 			Expect(
 				uri.DownloadWithCallback("", func(url string, i []byte) error {
+=======
+			Expect(
+				GetURI("github:go-skynet/model-gallery/gpt4all-j.yaml", func(url string, i []byte) error {
+>>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 					Expect(url).To(Equal("https://raw.githubusercontent.com/go-skynet/model-gallery/main/gpt4all-j.yaml"))
 					return nil
 				}),
 			).ToNot(HaveOccurred())
 		})
 		It("parses github without a branch", func() {
+<<<<<<< HEAD
 			uri := URI("github:go-skynet/model-gallery/gpt4all-j.yaml@main")
 
 			Expect(
 				uri.DownloadWithCallback("", func(url string, i []byte) error {
+=======
+			Expect(
+				GetURI("github:go-skynet/model-gallery/gpt4all-j.yaml@main", func(url string, i []byte) error {
+>>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 					Expect(url).To(Equal("https://raw.githubusercontent.com/go-skynet/model-gallery/main/gpt4all-j.yaml"))
 					return nil
 				}),
 			).ToNot(HaveOccurred())
 		})
 		It("parses github with urls", func() {
+<<<<<<< HEAD
 			uri := URI("https://raw.githubusercontent.com/go-skynet/model-gallery/main/gpt4all-j.yaml")
 			Expect(
 				uri.DownloadWithCallback("", func(url string, i []byte) error {
+=======
+			Expect(
+				GetURI("https://raw.githubusercontent.com/go-skynet/model-gallery/main/gpt4all-j.yaml", func(url string, i []byte) error {
+>>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 					Expect(url).To(Equal("https://raw.githubusercontent.com/go-skynet/model-gallery/main/gpt4all-j.yaml"))
 					return nil
 				}),
@@ -47,6 +66,7 @@ var _ = Describe("Gallery API tests", func() {
 		})
 	})
 })
+<<<<<<< HEAD
 
 type RangeHeaderError struct {
 	msg string
@@ -183,3 +203,5 @@ var _ = Describe("Download Test", func() {
 		os.Remove(filePath + ".partial")
 	})
 })
+=======
+>>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
