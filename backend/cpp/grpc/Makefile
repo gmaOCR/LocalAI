@@ -5,6 +5,7 @@ SYSTEM ?= $(HOST_SYSTEM)
 TAG_LIB_GRPC?=v1.59.0
 GIT_REPO_LIB_GRPC?=https://github.com/grpc/grpc.git
 GIT_CLONE_DEPTH?=1
+NUM_BUILD_THREADS?=$(shell nproc --ignore=1)
 
 INSTALLED_PACKAGES=installed_packages
 GRPC_REPO=grpc_repo
@@ -46,17 +47,12 @@ endif
 $(INSTALLED_PACKAGES): grpc_build
 
 $(GRPC_REPO):
-	mkdir -p $(GRPC_REPO)/grpc
-	cd $(GRPC_REPO)/grpc && \
-	git init && \
-	git remote add origin $(GIT_REPO_LIB_GRPC)  && \
-	git fetch origin && \
-	git checkout $(TAG_LIB_GRPC) && \
-	git submodule update --init --recursive --depth 1 --single-branch
-	
+	git clone --depth $(GIT_CLONE_DEPTH) -b $(TAG_LIB_GRPC) $(GIT_REPO_LIB_GRPC) $(GRPC_REPO)/grpc
+	cd $(GRPC_REPO)/grpc && git submodule update --init --recursive --depth $(GIT_CLONE_DEPTH)
+
 $(GRPC_BUILD): $(GRPC_REPO)
 	mkdir -p $(GRPC_BUILD)
-	cd $(GRPC_BUILD) && cmake $(CMAKE_ARGS) ../$(GRPC_REPO)/grpc && cmake --build . && cmake --build . --target install
+	cd $(GRPC_BUILD) && cmake $(CMAKE_ARGS) ../$(GRPC_REPO)/grpc && cmake --build . -- -j ${NUM_BUILD_THREADS} && cmake --build . --target install -- -j ${NUM_BUILD_THREADS}
 
 build: $(INSTALLED_PACKAGES)
 
