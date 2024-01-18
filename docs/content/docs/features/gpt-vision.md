@@ -1,10 +1,13 @@
 
 +++
 disableToc = false
-title = "🥽 GPT Vision"
+title = "🆕 GPT Vision"
 weight = 14
-url = "/features/gpt-vision/"
 +++
+
+{{% alert note %}}
+Available only on `master` builds
+{{% /alert %}}
 
 LocalAI supports understanding images by using [LLaVA](https://llava.hliu.cc/), and implements the [GPT Vision API](https://platform.openai.com/docs/guides/vision) from OpenAI.
 
@@ -22,17 +25,6 @@ curl http://localhost:8080/v1/chat/completions -H "Content-Type: application/jso
      "messages": [{"role": "user", "content": [{"type":"text", "text": "What is in the image?"}, {"type": "image_url", "image_url": {"url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" }}], "temperature": 0.9}]}'
 ```
 
-Grammars and function tools can be used as well in conjunction with vision APIs:
-
-```bash
- curl http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{
-     "model": "llava", "grammar": "root ::= (\"yes\" | \"no\")",
-     "messages": [{"role": "user", "content": [{"type":"text", "text": "Is there some grass in the image?"}, {"type": "image_url", "image_url": {"url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg" }}], "temperature": 0.9}]}'
-```
-
 ### Setup
 
-All-in-One images have already shipped the llava model as `gpt-4-vision-preview`, so no setup is needed in this case. 
-
 To setup the LLaVa models, follow the full example in the [configuration examples](https://github.com/mudler/LocalAI/blob/master/examples/configurations/README.md#llava).
-

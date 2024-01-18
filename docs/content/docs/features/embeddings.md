@@ -3,7 +3,6 @@
 disableToc = false
 title = "🧠 Embeddings"
 weight = 13
-url = "/features/embeddings/"
 +++
 
 LocalAI supports generating embeddings for text or list of tokens.
@@ -25,6 +24,39 @@ parameters:
 backend: "<backend>"
 embeddings: true
 # .. other parameters
+```
+
+## Bert embeddings
+
+To use `bert.cpp` models you can use the `bert` embedding backend.
+
+An example model config file:
+
+```yaml
+name: text-embedding-ada-002
+parameters:
+  model: bert
+backend: bert-embeddings
+embeddings: true
+# .. other parameters
+```
+
+The `bert` backend uses [bert.cpp](https://github.com/skeskinen/bert.cpp) and uses `ggml` models.
+
+For instance you can download the `ggml` quantized version of `all-MiniLM-L6-v2` from https://huggingface.co/skeskinen/ggml:
+
+```bash
+wget https://huggingface.co/skeskinen/ggml/resolve/main/all-MiniLM-L6-v2/ggml-model-q4_0.bin -O models/bert
+```
+
+To test locally (LocalAI server running on `localhost`),
+you can use `curl` (and `jq` at the end to prettify):
+
+```bash
+curl http://localhost:8080/embeddings -X POST -H "Content-Type: application/json" -d '{
+  "input": "Your text string goes here",
+  "model": "text-embedding-ada-002"
+}' | jq "."
 ```
 
 ## Huggingface embeddings
@@ -54,24 +86,15 @@ The `sentencetransformers` backend uses Python [sentence-transformers](https://g
 
 ## Llama.cpp embeddings
 
-Embeddings with `llama.cpp` are supported with the `llama-cpp` backend, it needs to be enabled with `embeddings` set to `true`.
+Embeddings with `llama.cpp` are supported with the `llama` backend.
 
 ```yaml
 name: my-awesome-model
-backend: llama-cpp
+backend: llama
 embeddings: true
 parameters:
   model: ggml-file.bin
 # ...
-```
-
-Then you can use the API to generate embeddings:
-
-```bash
-curl http://localhost:8080/embeddings -X POST -H "Content-Type: application/json" -d '{
-  "input": "My text",
-  "model": "my-awesome-model"
-}' | jq "."
 ```
 
 ## 💡 Examples

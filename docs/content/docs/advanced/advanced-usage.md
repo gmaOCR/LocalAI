@@ -106,200 +106,117 @@ local-ai github://mudler/LocalAI/examples/configurations/phi-2.yaml@master
 ### Full config model file reference
 
 ```yaml
-# Main configuration of the model, template, and system features.
-name: "" # Model name, used to identify the model in API calls.
+# Model name.
+# The model name is used to identify the model in the API calls.
+name: gpt-3.5-turbo
 
-# Precision settings for the model, reducing precision can enhance performance on some hardware.
-f16: null # Whether to use 16-bit floating-point precision.
+# Default model parameters.
+# These options can also be specified in the API calls
+parameters:
+  # Relative to the models path
+  model: luna-ai-llama2-uncensored.ggmlv3.q5_K_M.bin
+  # temperature
+  temperature: 0.3
+  # all the OpenAI request options here..
+  top_k: 
+  top_p: 
+  max_tokens:
+  ignore_eos: true
+  n_keep: 10
+  seed: 
+  mode: 
+  step:
+  negative_prompt:
+  typical_p:
+  tfz:
+  frequency_penalty:
+  mirostat_eta:
+  mirostat_tau:
+  mirostat: 
+  rope_freq_base:
+  rope_freq_scale:
+  negative_prompt_scale:
 
-embeddings: true # Enable embeddings for the model.
+# Default context size
+context_size: 512
+# Default number of threads
+threads: 10
+# Define a backend (optional). By default it will try to guess the backend the first time the model is interacted with.
+backend: llama-stable # available: llama, stablelm, gpt2, gptj rwkv
+# stopwords (if supported by the backend)
+stopwords:
+- "HUMAN:"
+- "### Response:"
+# string to trim space to
+trimspace:
+- string
+# Strings to cut from the response
+cutstrings:
+- "string"
 
-# Concurrency settings for the application.
-threads: null # Number of threads to use for processing.
+# Directory used to store additional assets
+asset_dir: ""
 
-# Roles define how different entities interact in a conversational model.
-# It can be used to map roles to specific parts of the conversation.
-roles: {} # Roles for entities like user, system, assistant, etc.
-
-# Backend to use for computation (like llama-cpp, diffusers, whisper).
-backend: "" # Backend for AI computations.
-
-# Templates for various types of model interactions.
+# define chat roles
+roles:
+  user: "HUMAN:"
+  system: "GPT:"
+  assistant: "ASSISTANT:"
 template:
-    chat: "" # Template for chat interactions. Uses golang templates with Sprig functions.
-    chat_message: "" # Template for individual chat messages.  Uses golang templates with Sprig functions.
-    completion: "" # Template for generating text completions. Uses golang templates with Sprig functions.
-    edit: "" # Template for edit operations. Uses golang templates with Sprig functions.
-    function: "" # Template for function calls. Uses golang templates with Sprig functions.
-    use_tokenizer_template: false # Whether to use a specific tokenizer template. (vLLM)
-    join_chat_messages_by_character: null # Character to join chat messages, if applicable. Defaults to newline.
+  # template file ".tmpl" with the prompt template to use by default on the endpoint call. Note there is no extension in the files
+  completion: completion
+  chat: chat
+  edit: edit_template
+  function: function_template
 
-# Function-related settings to control behavior of specific function calls.
 function:
-    disable_no_action: false # Whether to disable the no-action behavior.
-    grammar:
-        parallel_calls: false # Allow to return parallel tools
-        disable_parallel_new_lines: false # Disable parallel processing for new lines in grammar checks.
-        mixed_mode: false # Allow mixed-mode grammar enforcing
-        no_mixed_free_string: false # Disallow free strings in mixed mode.
-        disable: false # Completely disable grammar enforcing functionality.
-        prefix: "" # Prefix to add before grammars rules.
-        expect_strings_after_json: false # Expect string after JSON data.
-    no_action_function_name: "" # Function name to call when no action is determined.
-    no_action_description_name: "" # Description name for no-action functions.
-    response_regex: [] # Regular expressions to match response from
-    argument_regex: [] # Named regular to extract function arguments from the response.
-    argument_regex_key_name: "key" # Name of the named regex capture to capture the key of the function arguments
-	  argument_regex_value_name: "value" # Name of the named regex capture to capture the value of the function arguments
-    json_regex_match: [] # Regular expressions to match JSON data when in tool mode
-    replace_function_results: [] # Placeholder to replace function call results with arbitrary strings or patterns.
-    replace_llm_results: [] # Replace language model results with arbitrary strings or patterns.
-    capture_llm_results: [] # Capture language model results as text result, among JSON, in function calls. For instance, if a model returns a block for "thinking" and a block for "response", this will allow you to capture the thinking block.
-    function_name_key: "name"
-    function_arguments_key: "arguments"
+   disable_no_action: true
+   no_action_function_name: "reply"
+   no_action_description_name: "Reply to the AI assistant"
 
-# Feature gating flags to enable experimental or optional features.
-feature_flags: {}
-
-# System prompt to use by default.
-system_prompt: ""
-
-# Configuration for splitting tensors across GPUs.
+system_prompt:
+rms_norm_eps:
+# Set it to 8 for llama2 70b
+ngqa: 1
+## LLAMA specific options
+# Enable F16 if backend supports it
+f16: true
+# Enable debugging
+debug: true
+# Enable embeddings
+embeddings: true
+# Mirostat configuration (llama.cpp only)
+mirostat_eta: 0.8
+mirostat_tau: 0.9
+mirostat: 1
+# GPU Layers (only used when built with cublas)
+gpu_layers: 22
+# Enable memory lock
+mmlock: true
+# GPU setting to split the tensor in multiple parts and define a main GPU
+# see llama.cpp for usage
 tensor_split: ""
-
-# Identifier for the main GPU used in multi-GPU setups.
 main_gpu: ""
-
-# Small value added to the denominator in RMS normalization to prevent division by zero.
-rms_norm_eps: 0
-
-# Natural question generation model parameter.
-ngqa: 0
-
-# Path where prompt cache is stored.
-prompt_cache_path: ""
-
-# Whether to cache all prompts.
-prompt_cache_all: false
-
-# Whether the prompt cache is read-only.
+# Define a prompt cache path (relative to the models)
+prompt_cache_path: "prompt-cache"
+# Cache all the prompts
+prompt_cache_all: true
+# Read only
 prompt_cache_ro: false
+# Enable mmap
+mmap: true
+# Enable low vram mode (GPU only)
+low_vram: true
+# Set NUMA mode (CPU only)
+numa: true
+# Lora settings
+lora_adapter: "/path/to/lora/adapter"
+lora_base: "/path/to/lora/base"
+# Disable mulmatq (CUDA)
+no_mulmatq: true
 
-# Mirostat sampling settings.
-mirostat_eta: null
-mirostat_tau: null
-mirostat: null
-
-# GPU-specific layers configuration.
-gpu_layers: null
-
-# Memory mapping for efficient I/O operations.
-mmap: null
-
-# Memory locking to ensure data remains in RAM.
-mmlock: null
-
-# Mode to use minimal VRAM for GPU operations.
-low_vram: null
-
-# Words or phrases that halts processing.
-stopwords: []
-
-# Strings to cut from responses to maintain context or relevance.
-cutstrings: []
-
-# Strings to trim from responses for cleaner outputs.
-trimspace: []
-trimsuffix: []
-
-# Default context size for the model's understanding of the conversation or text.
-context_size: null
-
-# Non-uniform memory access settings, useful for systems with multiple CPUs.
-numa: false
-
-# Configuration for LoRA
-lora_adapter: ""
-lora_base: ""
-lora_scale: 0
-
-# Disable matrix multiplication queuing in GPU operations.
-no_mulmatq: false
-
-# Model for generating draft responses.
-draft_model: ""
-n_draft: 0
-
-# Quantization settings for the model, impacting memory and processing speed.
-quantization: ""
-
-# Utilization percentage of GPU memory to allocate for the model. (vLLM)
-gpu_memory_utilization: 0
-
-# Whether to trust and execute remote code.
-trust_remote_code: false
-
-# Force eager execution of TensorFlow operations if applicable. (vLLM)
-enforce_eager: false
-
-# Space allocated for swapping data in and out of memory. (vLLM)
-swap_space: 0
-
-# Maximum model length, possibly referring to the number of tokens or parameters. (vLLM)
-max_model_len: 0
-
-# Size of the tensor parallelism in distributed computing environments. (vLLM)
-tensor_parallel_size: 0
-
-# vision model to use for multimodal
-mmproj: ""
-
-# Disables offloading of key/value pairs in transformer models to save memory.
-no_kv_offloading: false
-
-# Scaling factor for the rope penalty.
-rope_scaling: ""
-
-# Type of configuration, often related to the type of task or model architecture.
-type: ""
-
-# YARN settings
-yarn_ext_factor: 0
-yarn_attn_factor: 0
-yarn_beta_fast: 0
-yarn_beta_slow: 0
-# configuration for diffusers model
-diffusers:
-    cuda: false # Whether to use CUDA
-    pipeline_type: "" # Type of pipeline to use.
-    scheduler_type: "" # Type of scheduler for controlling operations.
-    enable_parameters: "" # Parameters to enable in the diffuser.
-    cfg_scale: 0 # Scale for CFG in the diffuser setup.
-    img2img: false # Whether image-to-image transformation is supported.
-    clip_skip: 0 # Number of steps to skip in CLIP operations.
-    clip_model: "" # Model to use for CLIP operations.
-    clip_subfolder: "" # Subfolder for storing CLIP-related data.
-    control_net: "" # Control net to use
-
-# Step count, usually for image processing models
-step: 0
-
-# Configuration for gRPC communication.
-grpc:
-    attempts: 0 # Number of retry attempts for gRPC calls.
-    attempts_sleep_time: 0 # Sleep time between retries.
-
-# Text-to-Speech (TTS) configuration.
-tts:
-    voice: "" # Voice setting for TTS.
-    vall-e:
-        audio_path: "" # Path to audio files for Vall-E.
-
-# Whether to use CUDA for GPU-based operations.
-cuda: false
-
-# List of files to download as part of the setup or operations.
-download_files: []
+# Diffusers/transformers
+cuda: true
 ```
 
 ### Prompt templates 
@@ -433,7 +350,7 @@ For example, to start vllm manually after compiling LocalAI (also assuming runni
 ./local-ai --external-grpc-backends "vllm:$PWD/backend/python/vllm/run.sh"
 ```
 
-Note that first is is necessary to create the environment with:
+Note that first is is necessary to create the conda environment with:
 
 ```bash
 make -C backend/python/vllm
@@ -451,9 +368,7 @@ there are additional environment variables available that modify the behavior of
 | `BUILD_TYPE`               |         | Build type. Available: `cublas`, `openblas`, `clblas`                                                      |
 | `GO_TAGS`                  |         | Go tags. Available: `stablediffusion`                                                                      |
 | `HUGGINGFACEHUB_API_TOKEN` |         | Special token for interacting with HuggingFace Inference API, required only when using the `langchain-huggingface` backend |
-| `EXTRA_BACKENDS`          |         | A space separated list of backends to prepare. For example `EXTRA_BACKENDS="backend/python/diffusers backend/python/transformers"` prepares the python environment on start |
-| `DISABLE_AUTODETECT`       | `false` | Disable autodetect of CPU flagset on start                                                                     |
-| `LLAMACPP_GRPC_SERVERS`   |         | A list of llama.cpp workers to distribute the workload. For example `LLAMACPP_GRPC_SERVERS="address1:port,address2:port"` |
+| `EXTRA_BACKENDS`          |         | A space separated list of backends to prepare. For example `EXTRA_BACKENDS="backend/python/diffusers backend/python/transformers"` prepares the conda environment on start |
 
 Here is how to configure these variables:
 
@@ -466,116 +381,35 @@ docker run --env-file .env localai
 
 ### CLI parameters
 
-You can control LocalAI with command line arguments, to specify a binding address, or the number of threads. Any command line parameter can be specified via an environment variable.
+You can control LocalAI with command line arguments, to specify a binding address, or the number of threads.
 
-In the help text below, BASEPATH is the location that local-ai is being executed from
 
-#### Global Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-|  -h, --help |  | Show context-sensitive help. |
-| --log-level | info | Set the level of logs to output [error,warn,info,debug] | $LOCALAI_LOG_LEVEL |
+| Parameter                      | Environmental Variable          | Default Variable                                   | Description                                                         |
+| ------------------------------ | ------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| --f16                          | $F16                            | false                                              | Enable f16 mode                                                     |
+| --debug                        | $DEBUG                          | false                                              | Enable debug mode                                                   |
+| --cors                         | $CORS                           | false                                              | Enable CORS support                                                 |
+| --cors-allow-origins value     | $CORS_ALLOW_ORIGINS             |                                                    | Specify origins allowed for CORS                                     |
+| --threads value                | $THREADS                        | 4    | Number of threads to use for parallel computation                    |
+| --models-path value            | $MODELS_PATH                    | ./models       | Path to the directory containing models used for inferencing        |
+| --preload-models value         | $PRELOAD_MODELS                 |           | List of models to preload in JSON format at startup                  |
+| --preload-models-config value  | $PRELOAD_MODELS_CONFIG          |  | A config with a list of models to apply at startup. Specify the path to a YAML config file |
+| --config-file value            | $CONFIG_FILE                    |                                         | Path to the config file                                             |
+| --address value                | $ADDRESS                        | :8080                    | Specify the bind address for the API server                         |
+| --image-path value             | $IMAGE_PATH                     |                                     | Path to the directory used to store generated images                             |
+| --context-size value           | $CONTEXT_SIZE                   | 512                 | Default context size of the model                                   |
+| --upload-limit value           | $UPLOAD_LIMIT                   | 15                         | Default upload limit in megabytes (audio file upload)                                  |
+| --galleries                    | $GALLERIES                      |                                                    | Allows to set galleries from command line                           |
+|--parallel-requests              | $PARALLEL_REQUESTS     |   false |            Enable backends to handle multiple requests in parallel. This is for backends that supports multiple requests in parallel, like llama.cpp or vllm |
+| --single-active-backend   | $SINGLE_ACTIVE_BACKEND |  false |    Allow only one backend to be running |
+| --api-keys value |   $API_KEY | empty |  List of API Keys to enable API authentication. When this is set, all the requests must be authenticated with one of these API keys.
+| --enable-watchdog-idle | $WATCHDOG_IDLE | false | Enable watchdog for stopping idle backends. This will stop the backends if are in idle state for too long. (default: false) [$WATCHDOG_IDLE]
+| --enable-watchdog-busy   |     $WATCHDOG_BUSY | false |         Enable watchdog for stopping busy backends that exceed a defined threshold.|
+| --watchdog-busy-timeout value | $WATCHDOG_BUSY_TIMEOUT | 5m | Watchdog timeout. This will restart the backend if it crashes.  |
+| --watchdog-idle-timeout value | $WATCHDOG_IDLE_TIMEOUT | 15m | Watchdog idle timeout. This will restart the backend if it crashes. |
+| --preload-backend-only | $PRELOAD_BACKEND_ONLY | false | If set, the api is NOT launched, and only the preloaded models / backends are started. This is intended for multi-node setups. |
+| --external-grpc-backends | EXTERNAL_GRPC_BACKENDS | none | Comma separated list of external gRPC backends to use. Format: `name:host:port` or `name:/path/to/file` |
 
-#### Storage Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-| --models-path | BASEPATH/models | Path containing models used for inferencing  | $LOCALAI_MODELS_PATH |
-| --backend-assets-path |/tmp/localai/backend_data | Path used to extract libraries that are required by some of the backends in runtime | $LOCALAI_BACKEND_ASSETS_PATH |
-| --generated-content-path | /tmp/generated/content | Location for assets generated by backends (e.g. stablediffusion) | $LOCALAI_GENERATED_CONTENT_PATH |
-| --upload-path | /tmp/localai/upload | Path to store uploads from files api | $LOCALAI_UPLOAD_PATH |
-| --config-path | /tmp/localai/config | | $LOCALAI_CONFIG_PATH |
-| --localai-config-dir | BASEPATH/configuration | Directory for dynamic loading of certain configuration files (currently api_keys.json and external_backends.json) | $LOCALAI_CONFIG_DIR |
-| --localai-config-dir-poll-interval |  | Typically the config path picks up changes automatically, but if your system has broken fsnotify events, set this to a time duration to poll the LocalAI Config Dir (example: 1m) | $LOCALAI_CONFIG_DIR_POLL_INTERVAL |
-| --models-config-file | STRING | YAML file containing a list of model backend configs | $LOCALAI_MODELS_CONFIG_FILE |
-
-#### Models Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-| --galleries | STRING | JSON list of galleries | $LOCALAI_GALLERIES |
-| --autoload-galleries |  | | $LOCALAI_AUTOLOAD_GALLERIES |
-| --remote-library | "https://raw.githubusercontent.com/mudler/LocalAI/master/embedded/model_library.yaml" | A LocalAI remote library URL | $LOCALAI_REMOTE_LIBRARY |
-| --preload-models | STRING | A List of models to apply in JSON at start |$LOCALAI_PRELOAD_MODELS |
-| --models | MODELS,... | A List of model configuration URLs to load | $LOCALAI_MODELS |
-| --preload-models-config | STRING | A List of models to apply at startup. Path to a YAML config file | $LOCALAI_PRELOAD_MODELS_CONFIG |
-
-#### Performance Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-| --f16 |  | Enable GPU acceleration | $LOCALAI_F16 |
-| -t, --threads | 4 | Number of threads used for parallel computation. Usage of the number of physical cores in the system is suggested | $LOCALAI_THREADS |
-| --context-size | 512 | Default context size for models | $LOCALAI_CONTEXT_SIZE |
-
-#### API Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-| --address | ":8080" | Bind address for the API server | $LOCALAI_ADDRESS |
-| --cors |  |  | $LOCALAI_CORS |
-| --cors-allow-origins |  |  | $LOCALAI_CORS_ALLOW_ORIGINS |
-| --upload-limit | 15 | Default upload-limit in MB | $LOCALAI_UPLOAD_LIMIT |
-| --api-keys | API-KEYS,... | List of API Keys to enable API authentication. When this is set, all the requests must be authenticated with one of these API keys | $LOCALAI_API_KEY |
-| --disable-welcome |  | Disable welcome pages | $LOCALAI_DISABLE_WELCOME |
-| --disable-webui | false | Disables the web user interface. When set to true, the server will only expose API endpoints without serving the web interface | $LOCALAI_DISABLE_WEBUI |
-| --machine-tag |  | If not empty - put that string to Machine-Tag header in each response. Useful to track response from different machines using multiple P2P federated nodes | $LOCALAI_MACHINE_TAG |
-
-#### Backend Flags
-| Parameter | Default | Description | Environment Variable |
-|-----------|---------|-------------|----------------------|
-| --parallel-requests |  | Enable backends to handle multiple requests in parallel if they support it (e.g.: llama.cpp or vllm) | $LOCALAI_PARALLEL_REQUESTS |
-| --single-active-backend |  | Allow only one backend to be run at a time | $LOCALAI_SINGLE_ACTIVE_BACKEND |
-| --preload-backend-only |  | Do not launch the API services, only the preloaded models / backends are started (useful for multi-node setups) | $LOCALAI_PRELOAD_BACKEND_ONLY |
-| --external-grpc-backends | EXTERNAL-GRPC-BACKENDS,... | A list of external grpc backends | $LOCALAI_EXTERNAL_GRPC_BACKENDS |
-| --enable-watchdog-idle |  | Enable watchdog for stopping backends that are idle longer than the watchdog-idle-timeout | $LOCALAI_WATCHDOG_IDLE |
-| --watchdog-idle-timeout | 15m | Threshold beyond which an idle backend should be stopped | $LOCALAI_WATCHDOG_IDLE_TIMEOUT, $WATCHDOG_IDLE_TIMEOUT |
-| --enable-watchdog-busy |  | Enable watchdog for stopping backends that are busy longer than the watchdog-busy-timeout | $LOCALAI_WATCHDOG_BUSY |
-| --watchdog-busy-timeout | 5m | Threshold beyond which a busy backend should be stopped | $LOCALAI_WATCHDOG_BUSY_TIMEOUT |
-
-### .env files
-
-Any settings being provided by an Environment Variable can also be provided from within .env files.  There are several locations that will be checked for relevant .env files. In order of precedence they are:
-
-- .env within the current directory
-- localai.env within the current directory
-- localai.env within the home directory
-- .config/localai.env within the home directory
-- /etc/localai.env
-
-Environment variables within files earlier in the list will take precedence over environment variables defined in files later in the list.
-
-An example .env file is:
-
-```
-LOCALAI_THREADS=10
-LOCALAI_MODELS_PATH=/mnt/storage/localai/models
-LOCALAI_F16=true
-```
-
-### Request headers
-
-You can use 'Extra-Usage' request header key presence ('Extra-Usage: true') to receive inference timings in milliseconds extending default OpenAI response model in the usage field:   
-```
-...
-{
-  "id": "...",
-  "created": ...,
-  "model": "...",
-  "choices": [
-    {
-      ...
-    },
-    ...
-  ],
-  "object": "...",
-  "usage": {
-    "prompt_tokens": ...,
-    "completion_tokens": ...,
-    "total_tokens": ...,
-    // Extra-Usage header key will include these two float fields:
-    "timing_prompt_processing: ...,
-    "timing_token_generation": ...,
-  },
-}
-...
-```
 
 ### Extra backends
 
@@ -586,7 +420,7 @@ If you wish to build a custom container image with extra backends, you can use t
 ```Dockerfile
 FROM quay.io/go-skynet/local-ai:master-ffmpeg-core
 
-RUN make -C backend/python/diffusers
+RUN PATH=$PATH:/opt/conda/bin make -C backend/python/diffusers
 ```
 
 Remember also to set the `EXTERNAL_GRPC_BACKENDS` environment variable (or `--external-grpc-backends` as CLI flag) to point to the backends you are using (`EXTERNAL_GRPC_BACKENDS="backend_name:/path/to/backend"`), for example with diffusers:
@@ -594,7 +428,7 @@ Remember also to set the `EXTERNAL_GRPC_BACKENDS` environment variable (or `--ex
 ```Dockerfile
 FROM quay.io/go-skynet/local-ai:master-ffmpeg-core
 
-RUN make -C backend/python/diffusers
+RUN PATH=$PATH:/opt/conda/bin make -C backend/python/diffusers
 
 ENV EXTERNAL_GRPC_BACKENDS="diffusers:/build/backend/python/diffusers/run.sh"
 ```
@@ -612,32 +446,3 @@ When using the `-core` container image it is possible to prepare the python back
 ```bash
 docker run --env EXTRA_BACKENDS="backend/python/diffusers" quay.io/go-skynet/local-ai:master-ffmpeg-core
 ```
-
-### Concurrent requests
-
-LocalAI supports parallel requests for the backends that supports it. For instance, vLLM and llama.cpp supports parallel requests, and thus LocalAI allows to run multiple requests in parallel. 
-
-In order to enable parallel requests, you have to pass `--parallel-requests` or set the `PARALLEL_REQUEST` to true as environment variable.
-
-A list of the environment variable that tweaks parallelism is the following:
-
-```
-### Python backends GRPC max workers
-### Default number of workers for GRPC Python backends.
-### This actually controls wether a backend can process multiple requests or not.
-# PYTHON_GRPC_MAX_WORKERS=1
-
-### Define the number of parallel LLAMA.cpp workers (Defaults to 1)
-# LLAMACPP_PARALLEL=1
-
-### Enable to run parallel requests
-# LOCALAI_PARALLEL_REQUESTS=true
-```
-
-Note that, for llama.cpp you need to set accordingly `LLAMACPP_PARALLEL` to the number of parallel processes your GPU/CPU can handle. For python-based backends (like vLLM) you can set `PYTHON_GRPC_MAX_WORKERS` to the number of parallel requests.
-
-### Disable CPU flagset auto detection in llama.cpp
-
-LocalAI will automatically discover the CPU flagset available in your host and will use the most optimized version of the backends.
-
-If you want to disable this behavior, you can set `DISABLE_AUTODETECT` to `true` in the environment variables.
