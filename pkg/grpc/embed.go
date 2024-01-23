@@ -2,10 +2,18 @@ package grpc
 
 import (
 	"context"
+<<<<<<< HEAD
 
 	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+=======
+	"github.com/go-skynet/LocalAI/api/schema"
+	pb "github.com/go-skynet/LocalAI/pkg/grpc/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"time"
+>>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 )
 
 var _ Backend = new(embedBackend)
@@ -35,7 +43,11 @@ func (e *embedBackend) LoadModel(ctx context.Context, in *pb.ModelOptions, opts 
 	return e.s.LoadModel(ctx, in)
 }
 
+<<<<<<< HEAD
 func (e *embedBackend) PredictStream(ctx context.Context, in *pb.PredictOptions, f func(reply *pb.Reply), opts ...grpc.CallOption) error {
+=======
+func (e *embedBackend) PredictStream(ctx context.Context, in *pb.PredictOptions, f func(s []byte), opts ...grpc.CallOption) error {
+>>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 	bs := &embedBackendServerStream{
 		ctx: ctx,
 		fn:  f,
@@ -47,20 +59,48 @@ func (e *embedBackend) GenerateImage(ctx context.Context, in *pb.GenerateImageRe
 	return e.s.GenerateImage(ctx, in)
 }
 
+<<<<<<< HEAD
 func (e *embedBackend) GenerateVideo(ctx context.Context, in *pb.GenerateVideoRequest, opts ...grpc.CallOption) (*pb.Result, error) {
 	return e.s.GenerateVideo(ctx, in)
 }
 
+=======
+>>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 func (e *embedBackend) TTS(ctx context.Context, in *pb.TTSRequest, opts ...grpc.CallOption) (*pb.Result, error) {
 	return e.s.TTS(ctx, in)
 }
 
+<<<<<<< HEAD
 func (e *embedBackend) SoundGeneration(ctx context.Context, in *pb.SoundGenerationRequest, opts ...grpc.CallOption) (*pb.Result, error) {
 	return e.s.SoundGeneration(ctx, in)
 }
 
 func (e *embedBackend) AudioTranscription(ctx context.Context, in *pb.TranscriptRequest, opts ...grpc.CallOption) (*pb.TranscriptResult, error) {
 	return e.s.AudioTranscription(ctx, in)
+=======
+func (e *embedBackend) AudioTranscription(ctx context.Context, in *pb.TranscriptRequest, opts ...grpc.CallOption) (*schema.Result, error) {
+	r, err := e.s.AudioTranscription(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	tr := &schema.Result{}
+	for _, s := range r.Segments {
+		var tks []int
+		for _, t := range s.Tokens {
+			tks = append(tks, int(t))
+		}
+		tr.Segments = append(tr.Segments,
+			schema.Segment{
+				Text:   s.Text,
+				Id:     int(s.Id),
+				Start:  time.Duration(s.Start),
+				End:    time.Duration(s.End),
+				Tokens: tks,
+			})
+	}
+	tr.Text = r.Text
+	return tr, err
+>>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 }
 
 func (e *embedBackend) TokenizeString(ctx context.Context, in *pb.PredictOptions, opts ...grpc.CallOption) (*pb.TokenizationResponse, error) {
@@ -71,6 +111,7 @@ func (e *embedBackend) Status(ctx context.Context) (*pb.StatusResponse, error) {
 	return e.s.Status(ctx, &pb.HealthMessage{})
 }
 
+<<<<<<< HEAD
 func (e *embedBackend) StoresSet(ctx context.Context, in *pb.StoresSetOptions, opts ...grpc.CallOption) (*pb.Result, error) {
 	return e.s.StoresSet(ctx, in)
 }
@@ -106,6 +147,15 @@ type embedBackendServerStream struct {
 
 func (e *embedBackendServerStream) Send(reply *pb.Reply) error {
 	e.fn(reply)
+=======
+type embedBackendServerStream struct {
+	ctx context.Context
+	fn  func(s []byte)
+}
+
+func (e *embedBackendServerStream) Send(reply *pb.Reply) error {
+	e.fn(reply.GetMessage())
+>>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 	return nil
 }
 
