@@ -1,19 +1,24 @@
 #!/bin/bash
-set -e
+set -ex
 
-backend_dir=$(dirname $0)
-if [ -d $backend_dir/common ]; then
-    source $backend_dir/common/libbackend.sh
-else
-    source $backend_dir/../common/libbackend.sh
+# Check if environment exist
+conda_env_exists(){
+    ! conda list --name "${@}" >/dev/null 2>/dev/null
+}
+
+if conda_env_exists "diffusers" ; then
+    echo "Creating virtual environment..."
+    conda env create --name diffusers --file $1
+    echo "Virtual environment created."
+else 
+    echo "Virtual environment already exists."
 fi
 
-# This is here because the Intel pip index is broken and returns 200 status codes for every package name, it just doesn't return any package links.
-# This makes uv think that the package exists in the Intel pip index, and by default it stops looking at other pip indexes once it finds a match.
-# We need uv to continue falling through to the pypi default index to find optimum[openvino] in the pypi index
-# the --upgrade actually allows us to *downgrade* torch to the version provided in the Intel pip index
-if [ "x${BUILD_PROFILE}" == "xintel" ]; then
-    EXTRA_PIP_INSTALL_FLAGS+=" --upgrade --index-strategy=unsafe-first-match"
-fi
+if [ "$PIP_CACHE_PURGE" = true ] ; then
+    export PATH=$PATH:/opt/conda/bin
 
-installRequirements
+    # Activate conda environment
+    source activate diffusers
+
+    pip cache purge
+fi
