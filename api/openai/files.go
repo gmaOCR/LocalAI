@@ -1,27 +1,57 @@
 package openai
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	config "github.com/go-skynet/LocalAI/api/config"
+	"github.com/go-skynet/LocalAI/api/options"
+	"github.com/go-skynet/LocalAI/pkg/utils"
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
-	"sync/atomic"
 	"time"
-
-	"github.com/microcosm-cc/bluemonday"
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/schema"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/mudler/LocalAI/pkg/utils"
 )
 
-var UploadedFiles []schema.File
+var uploadedFiles []File
 
-const UploadedFilesFile = "uploadedFiles.json"
+// File represents the structure of a file object from the OpenAI API.
+type File struct {
+	ID        string    `json:"id"`         // Unique identifier for the file
+	Object    string    `json:"object"`     // Type of the object (e.g., "file")
+	Bytes     int       `json:"bytes"`      // Size of the file in bytes
+	CreatedAt time.Time `json:"created_at"` // The time at which the file was created
+	Filename  string    `json:"filename"`   // The name of the file
+	Purpose   string    `json:"purpose"`    // The purpose of the file (e.g., "fine-tune", "classifications", etc.)
+}
+
+func saveUploadConfig(uploadDir string) {
+	file, err := json.MarshalIndent(uploadedFiles, "", " ")
+	if err != nil {
+		log.Error().Msgf("Failed to JSON marshal the uploadedFiles: %s", err)
+	}
+
+	err = os.WriteFile(filepath.Join(uploadDir, "uploadedFiles.json"), file, 0644)
+	if err != nil {
+		log.Error().Msgf("Failed to save uploadedFiles to file: %s", err)
+	}
+}
+
+func LoadUploadConfig(uploadPath string) {
+	file, err := os.ReadFile(filepath.Join(uploadPath, "uploadedFiles.json"))
+	if err != nil {
+		log.Error().Msgf("Failed to read file: %s", err)
+	} else {
+		err = json.Unmarshal(file, &uploadedFiles)
+		if err != nil {
+			log.Error().Msgf("Failed to JSON unmarshal the file into uploadedFiles: %s", err)
+		}
+	}
+}
 
 // UploadFilesEndpoint https://platform.openai.com/docs/api-reference/files/create
-func UploadFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+func UploadFilesEndpoint(cm *config.ConfigLoader, o *options.Option) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		file, err := c.FormFile("file")
 		if err != nil {
@@ -29,8 +59,8 @@ func UploadFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Appli
 		}
 
 		// Check the file size
-		if file.Size > int64(appConfig.UploadLimitMB*1024*1024) {
-			return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("File size %d exceeds upload limit %d", file.Size, appConfig.UploadLimitMB))
+		if file.Size > int64(o.UploadLimitMB*1024*1024) {
+			return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("File size %d exceeds upload limit %d", file.Size, o.UploadLimitMB))
 		}
 
 		purpose := c.FormValue("purpose", "") //TODO put in purpose dirs
@@ -41,7 +71,7 @@ func UploadFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Appli
 		// Sanitize the filename to prevent directory traversal
 		filename := utils.SanitizeFileName(file.Filename)
 
-		savePath := filepath.Join(appConfig.UploadDir, filename)
+		savePath := filepath.Join(o.UploadDir, filename)
 
 		// Check if file already exists
 		if _, err := os.Stat(savePath); !os.IsNotExist(err) {
@@ -50,11 +80,11 @@ func UploadFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Appli
 
 		err = c.SaveFile(file, savePath)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to save file: " + bluemonday.StrictPolicy().Sanitize(err.Error()))
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to save file: " + err.Error())
 		}
 
-		f := schema.File{
-			ID:        fmt.Sprintf("file-%d", getNextFileId()),
+		f := File{
+			ID:        fmt.Sprintf("file-%d", time.Now().Unix()),
 			Object:    "file",
 			Bytes:     int(file.Size),
 			CreatedAt: time.Now(),
@@ -62,33 +92,27 @@ func UploadFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Appli
 			Purpose:   purpose,
 		}
 
-		UploadedFiles = append(UploadedFiles, f)
-		utils.SaveConfig(appConfig.UploadDir, UploadedFilesFile, UploadedFiles)
+		uploadedFiles = append(uploadedFiles, f)
+		saveUploadConfig(o.UploadDir)
 		return c.Status(fiber.StatusOK).JSON(f)
 	}
 }
 
-var currentFileId int64 = 0
-
-func getNextFileId() int64 {
-	atomic.AddInt64(&currentId, 1)
-	return currentId
-}
-
 // ListFilesEndpoint https://platform.openai.com/docs/api-reference/files/list
-// @Summary List files.
-// @Success 200 {object} schema.ListFiles "Response"
-// @Router /v1/files [get]
-func ListFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+func ListFilesEndpoint(cm *config.ConfigLoader, o *options.Option) func(c *fiber.Ctx) error {
+	type ListFiles struct {
+		Data   []File
+		Object string
+	}
 
 	return func(c *fiber.Ctx) error {
-		var listFiles schema.ListFiles
+		var listFiles ListFiles
 
 		purpose := c.Query("purpose")
 		if purpose == "" {
-			listFiles.Data = UploadedFiles
+			listFiles.Data = uploadedFiles
 		} else {
-			for _, f := range UploadedFiles {
+			for _, f := range uploadedFiles {
 				if purpose == f.Purpose {
 					listFiles.Data = append(listFiles.Data, f)
 				}
@@ -99,13 +123,13 @@ func ListFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Applica
 	}
 }
 
-func getFileFromRequest(c *fiber.Ctx) (*schema.File, error) {
+func getFileFromRequest(c *fiber.Ctx) (*File, error) {
 	id := c.Params("file_id")
 	if id == "" {
 		return nil, fmt.Errorf("file_id parameter is required")
 	}
 
-	for _, f := range UploadedFiles {
+	for _, f := range uploadedFiles {
 		if id == f.ID {
 			return &f, nil
 		}
@@ -114,56 +138,49 @@ func getFileFromRequest(c *fiber.Ctx) (*schema.File, error) {
 	return nil, fmt.Errorf("unable to find file id %s", id)
 }
 
-// GetFilesEndpoint is the OpenAI API endpoint to get files https://platform.openai.com/docs/api-reference/files/retrieve
-// @Summary Returns information about a specific file.
-// @Success 200 {object} schema.File "Response"
-// @Router /v1/files/{file_id} [get]
-func GetFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+// GetFilesEndpoint https://platform.openai.com/docs/api-reference/files/retrieve
+func GetFilesEndpoint(cm *config.ConfigLoader, o *options.Option) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		file, err := getFileFromRequest(c)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(bluemonday.StrictPolicy().Sanitize(err.Error()))
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 
 		return c.JSON(file)
 	}
 }
 
-type DeleteStatus struct {
-	Id      string
-	Object  string
-	Deleted bool
-}
-
-// DeleteFilesEndpoint is the OpenAI API endpoint to delete files https://platform.openai.com/docs/api-reference/files/delete
-// @Summary Delete a file.
-// @Success 200 {object} DeleteStatus "Response"
-// @Router /v1/files/{file_id} [delete]
-func DeleteFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+// DeleteFilesEndpoint https://platform.openai.com/docs/api-reference/files/delete
+func DeleteFilesEndpoint(cm *config.ConfigLoader, o *options.Option) func(c *fiber.Ctx) error {
+	type DeleteStatus struct {
+		Id      string
+		Object  string
+		Deleted bool
+	}
 
 	return func(c *fiber.Ctx) error {
 		file, err := getFileFromRequest(c)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(bluemonday.StrictPolicy().Sanitize(err.Error()))
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 
-		err = os.Remove(filepath.Join(appConfig.UploadDir, file.Filename))
+		err = os.Remove(filepath.Join(o.UploadDir, file.Filename))
 		if err != nil {
 			// If the file doesn't exist then we should just continue to remove it
 			if !errors.Is(err, os.ErrNotExist) {
-				return c.Status(fiber.StatusInternalServerError).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to delete file: %s, %v", file.Filename, err)))
+				return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Unable to delete file: %s, %v", file.Filename, err))
 			}
 		}
 
 		// Remove upload from list
-		for i, f := range UploadedFiles {
+		for i, f := range uploadedFiles {
 			if f.ID == file.ID {
-				UploadedFiles = append(UploadedFiles[:i], UploadedFiles[i+1:]...)
+				uploadedFiles = append(uploadedFiles[:i], uploadedFiles[i+1:]...)
 				break
 			}
 		}
 
-		utils.SaveConfig(appConfig.UploadDir, UploadedFilesFile, UploadedFiles)
+		saveUploadConfig(o.UploadDir)
 		return c.JSON(DeleteStatus{
 			Id:      file.ID,
 			Object:  "file",
@@ -172,21 +189,17 @@ func DeleteFilesEndpoint(cm *config.BackendConfigLoader, appConfig *config.Appli
 	}
 }
 
-// GetFilesContentsEndpoint is the OpenAI API endpoint to get files content https://platform.openai.com/docs/api-reference/files/retrieve-contents
-// @Summary Returns information about a specific file.
-// @Success	200		{string}	binary				"file"
-// @Router /v1/files/{file_id}/content [get]
-// GetFilesContentsEndpoint
-func GetFilesContentsEndpoint(cm *config.BackendConfigLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+// GetFilesContentsEndpoint https://platform.openai.com/docs/api-reference/files/retrieve-contents
+func GetFilesContentsEndpoint(cm *config.ConfigLoader, o *options.Option) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		file, err := getFileFromRequest(c)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(bluemonday.StrictPolicy().Sanitize(err.Error()))
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 
-		fileContents, err := os.ReadFile(filepath.Join(appConfig.UploadDir, file.Filename))
+		fileContents, err := os.ReadFile(filepath.Join(o.UploadDir, file.Filename))
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(bluemonday.StrictPolicy().Sanitize(err.Error()))
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 
 		return c.Send(fileContents)
