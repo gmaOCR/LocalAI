@@ -3,10 +3,15 @@ package grpc
 import (
 	"context"
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
 =======
 	"github.com/go-skynet/LocalAI/api/schema"
+=======
+
+	"github.com/go-skynet/LocalAI/core/schema"
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 	pb "github.com/go-skynet/LocalAI/pkg/grpc/proto"
 >>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
 	"google.golang.org/grpc"

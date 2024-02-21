@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
 	"google.golang.org/grpc"
@@ -14,6 +15,14 @@ import (
 	"google.golang.org/grpc/metadata"
 	"time"
 >>>>>>> d6352300 (feat(grpc): backend SPI pluggable in embedding mode (#1621))
+=======
+	"time"
+
+	"github.com/go-skynet/LocalAI/core/schema"
+	pb "github.com/go-skynet/LocalAI/pkg/grpc/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 )
 
 var _ Backend = new(embedBackend)

@@ -60,10 +60,10 @@ func ModelTranscription(audio, language string, translate bool, ml *model.ModelL
 	return tr, err
 =======
 
-	config "github.com/go-skynet/LocalAI/api/config"
-	"github.com/go-skynet/LocalAI/api/schema"
+	config "github.com/go-skynet/LocalAI/core/config"
+	"github.com/go-skynet/LocalAI/core/schema"
 
-	"github.com/go-skynet/LocalAI/api/options"
+	"github.com/go-skynet/LocalAI/core/options"
 	"github.com/go-skynet/LocalAI/pkg/grpc/proto"
 	model "github.com/go-skynet/LocalAI/pkg/model"
 )

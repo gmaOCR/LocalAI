@@ -2,9 +2,16 @@ package schema
 
 import (
 	"context"
+<<<<<<< HEAD
 	"time"
 
 	functions "github.com/mudler/LocalAI/pkg/functions"
+=======
+
+	config "github.com/go-skynet/LocalAI/core/config"
+
+	"github.com/go-skynet/LocalAI/pkg/grammar"
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 )
 
 // APIError provides error information returned by the OpenAI API.
@@ -23,9 +30,12 @@ type OpenAIUsage struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+<<<<<<< HEAD
 	// Extra timing data, disabled by default as is't not a part of OpenAI specification
 	TimingPromptProcessing float64 `json:"timing_prompt_processing,omitempty"`
 	TimingTokenGeneration  float64 `json:"timing_token_generation,omitempty"`
+=======
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 }
 
 type Item struct {
@@ -51,7 +61,11 @@ type OpenAIResponse struct {
 
 type Choice struct {
 	Index        int      `json:"index"`
+<<<<<<< HEAD
 	FinishReason string   `json:"finish_reason"`
+=======
+	FinishReason string   `json:"finish_reason,omitempty"`
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 	Message      *Message `json:"message,omitempty"`
 	Delta        *Message `json:"delta,omitempty"`
 	Text         string   `json:"text,omitempty"`
@@ -61,8 +75,11 @@ type Content struct {
 	Type     string     `json:"type" yaml:"type"`
 	Text     string     `json:"text" yaml:"text"`
 	ImageURL ContentURL `json:"image_url" yaml:"image_url"`
+<<<<<<< HEAD
 	AudioURL ContentURL `json:"audio_url" yaml:"audio_url"`
 	VideoURL ContentURL `json:"video_url" yaml:"video_url"`
+=======
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 }
 
 type ContentURL struct {
@@ -81,8 +98,11 @@ type Message struct {
 
 	StringContent string   `json:"string_content,omitempty" yaml:"string_content,omitempty"`
 	StringImages  []string `json:"string_images,omitempty" yaml:"string_images,omitempty"`
+<<<<<<< HEAD
 	StringVideos  []string `json:"string_videos,omitempty" yaml:"string_videos,omitempty"`
 	StringAudios  []string `json:"string_audios,omitempty" yaml:"string_audios,omitempty"`
+=======
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 
 	// A result of a function call
 	FunctionCall interface{} `json:"function_call,omitempty" yaml:"function_call,omitempty"`
@@ -107,6 +127,7 @@ type OpenAIModel struct {
 	Object string `json:"object"`
 }
 
+<<<<<<< HEAD
 type DeleteAssistantResponse struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
@@ -140,12 +161,15 @@ type DeleteAssistantFileResponse struct {
 
 type ImageGenerationResponseFormat string
 
+=======
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 type ChatCompletionResponseFormatType string
 
 type ChatCompletionResponseFormat struct {
 	Type ChatCompletionResponseFormatType `json:"type,omitempty"`
 }
 
+<<<<<<< HEAD
 type JsonSchemaRequest struct {
 	Type       string     `json:"type"`
 	JsonSchema JsonSchema `json:"json_schema"`
@@ -162,11 +186,22 @@ type OpenAIRequest struct {
 
 	Context context.Context    `json:"-"`
 	Cancel  context.CancelFunc `json:"-"`
+=======
+type OpenAIRequest struct {
+	config.PredictionOptions
+
+	Context context.Context
+	Cancel  context.CancelFunc
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 
 	// whisper
 	File string `json:"file" validate:"required"`
 	//whisper/image
+<<<<<<< HEAD
 	ResponseFormat interface{} `json:"response_format,omitempty"`
+=======
+	ResponseFormat ChatCompletionResponseFormat `json:"response_format"`
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 	// image
 	Size string `json:"size"`
 	// Prompt is read only by completion/image API calls
@@ -182,22 +217,36 @@ type OpenAIRequest struct {
 	Messages []Message `json:"messages" yaml:"messages"`
 
 	// A list of available functions to call
+<<<<<<< HEAD
 	Functions    functions.Functions `json:"functions" yaml:"functions"`
 	FunctionCall interface{}         `json:"function_call" yaml:"function_call"` // might be a string or an object
 
 	Tools       []functions.Tool `json:"tools,omitempty" yaml:"tools"`
 	ToolsChoice interface{}      `json:"tool_choice,omitempty" yaml:"tool_choice"`
+=======
+	Functions    []grammar.Function `json:"functions" yaml:"functions"`
+	FunctionCall interface{}        `json:"function_call" yaml:"function_call"` // might be a string or an object
+
+	Tools       []grammar.Tool `json:"tools,omitempty" yaml:"tools"`
+	ToolsChoice interface{}    `json:"tool_choice,omitempty" yaml:"tool_choice"`
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 
 	Stream bool `json:"stream"`
 
 	// Image (not supported by OpenAI)
+<<<<<<< HEAD
 	Mode    int    `json:"mode"`
 	Quality string `json:"quality"`
 	Step    int    `json:"step"`
+=======
+	Mode int `json:"mode"`
+	Step int `json:"step"`
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
 
 	// A grammar to constrain the LLM output
 	Grammar string `json:"grammar" yaml:"grammar"`
 
+<<<<<<< HEAD
 	JSONFunctionGrammarObject *functions.JSONFunctionStructure `json:"grammar_json_functions" yaml:"grammar_json_functions"`
 
 	Backend string `json:"backend" yaml:"backend"`
@@ -209,3 +258,12 @@ type ModelsDataResponse struct {
 	Object string        `json:"object"`
 	Data   []OpenAIModel `json:"data"`
 }
+=======
+	JSONFunctionGrammarObject *grammar.JSONFunctionStructure `json:"grammar_json_functions" yaml:"grammar_json_functions"`
+
+	Backend string `json:"backend" yaml:"backend"`
+
+	// AutoGPTQ
+	ModelBaseName string `json:"model_base_name" yaml:"model_base_name"`
+}
+>>>>>>> 68598ebe (MQTT Startup Refactoring Part 1: core/ packages part 1 (#1728))
