@@ -60,25 +60,24 @@ func ModelTranscription(audio, language string, translate bool, ml *model.ModelL
 	return tr, err
 =======
 
-	config "github.com/go-skynet/LocalAI/core/config"
+	"github.com/go-skynet/LocalAI/core/config"
 	"github.com/go-skynet/LocalAI/core/schema"
 
-	"github.com/go-skynet/LocalAI/core/options"
 	"github.com/go-skynet/LocalAI/pkg/grpc/proto"
 	model "github.com/go-skynet/LocalAI/pkg/model"
 )
 
-func ModelTranscription(audio, language string, loader *model.ModelLoader, c config.Config, o *options.Option) (*schema.Result, error) {
+func ModelTranscription(audio, language string, ml *model.ModelLoader, backendConfig config.BackendConfig, appConfig *config.ApplicationConfig) (*schema.Result, error) {
 
-	opts := modelOpts(c, o, []model.Option{
+	opts := modelOpts(backendConfig, appConfig, []model.Option{
 		model.WithBackendString(model.WhisperBackend),
-		model.WithModel(c.Model),
-		model.WithContext(o.Context),
-		model.WithThreads(uint32(c.Threads)),
-		model.WithAssetDir(o.AssetsDestination),
+		model.WithModel(backendConfig.Model),
+		model.WithContext(appConfig.Context),
+		model.WithThreads(uint32(backendConfig.Threads)),
+		model.WithAssetDir(appConfig.AssetsDestination),
 	})
 
-	whisperModel, err := o.Loader.BackendLoader(opts...)
+	whisperModel, err := ml.BackendLoader(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func ModelTranscription(audio, language string, loader *model.ModelLoader, c con
 	return whisperModel.AudioTranscription(context.Background(), &proto.TranscriptRequest{
 		Dst:      audio,
 		Language: language,
-		Threads:  uint32(c.Threads),
+		Threads:  uint32(backendConfig.Threads),
 	})
 >>>>>>> 5f2b87fa (Revert "[Refactor]: Core/API Split" (#1550)):api/backend/transcript.go
 }

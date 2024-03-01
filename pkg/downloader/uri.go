@@ -435,13 +435,19 @@ func DownloadFile(url string, filePath, sha string, downloadStatus func(string, 
 	defer resp.Body.Close()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 1ffb92d8 (refactor: move remaining api packages to core (#1731))
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("failed to download url %q, invalid status code %d", url, resp.StatusCode)
 	}
 
+<<<<<<< HEAD
 	// Create parent directory
 	err = os.MkdirAll(filepath.Dir(filePath), 0750)
 =======
+=======
+>>>>>>> 1ffb92d8 (refactor: move remaining api packages to core (#1731))
 	// Create parent directory
 	err = os.MkdirAll(filepath.Dir(filePath), 0755)
 >>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))

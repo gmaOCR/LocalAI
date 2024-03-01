@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package schema
 
 import (
@@ -113,3 +114,26 @@ type SystemInformationResponse struct {
 	Backends []string       `json:"backends"`
 	Models   []SysInfoModel `json:"loaded_models"`
 }
+=======
+package schema
+
+import (
+	gopsutil "github.com/shirou/gopsutil/v3/process"
+)
+
+type BackendMonitorRequest struct {
+	Model string `json:"model" yaml:"model"`
+}
+
+type BackendMonitorResponse struct {
+	MemoryInfo    *gopsutil.MemoryInfoStat
+	MemoryPercent float32
+	CPUPercent    float64
+}
+
+type TTSRequest struct {
+	Model   string `json:"model" yaml:"model"`
+	Input   string `json:"input" yaml:"input"`
+	Backend string `json:"backend" yaml:"backend"`
+}
+>>>>>>> 1ffb92d8 (refactor: move remaining api packages to core (#1731))
