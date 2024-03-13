@@ -73,7 +73,7 @@ func ModelTranscription(audio, language string, ml *model.ModelLoader, backendCo
 		model.WithBackendString(model.WhisperBackend),
 		model.WithModel(backendConfig.Model),
 		model.WithContext(appConfig.Context),
-		model.WithThreads(uint32(backendConfig.Threads)),
+		model.WithThreads(uint32(*backendConfig.Threads)),
 		model.WithAssetDir(appConfig.AssetsDestination),
 	})
 
@@ -89,7 +89,7 @@ func ModelTranscription(audio, language string, ml *model.ModelLoader, backendCo
 	return whisperModel.AudioTranscription(context.Background(), &proto.TranscriptRequest{
 		Dst:      audio,
 		Language: language,
-		Threads:  uint32(backendConfig.Threads),
+		Threads:  uint32(*backendConfig.Threads),
 	})
 >>>>>>> 5f2b87fa (Revert "[Refactor]: Core/API Split" (#1550)):api/backend/transcript.go
 }
