@@ -1,12 +1,13 @@
+name: all-minilm-l6-v2
+backend: sentencetransformers
 embeddings: true
-name: text-embedding-ada-002
 parameters:
-  model: huggingface://bartowski/granite-embedding-107m-multilingual-GGUF/granite-embedding-107m-multilingual-f16.gguf
+  model: all-MiniLM-L6-v2
 
 usage: |
     You can test this model with curl like this:
 
     curl http://localhost:8080/embeddings -X POST -H "Content-Type: application/json" -d '{
       "input": "Your text string goes here",
-      "model": "text-embedding-ada-002"
+      "model": "all-minilm-l6-v2"
     }'
