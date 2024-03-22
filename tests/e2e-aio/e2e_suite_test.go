@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+<<<<<<< HEAD
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,17 +17,32 @@ import (
 )
 
 var container testcontainers.Container
+=======
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
+	"github.com/sashabaranov/go-openai"
+)
+
+var pool *dockertest.Pool
+var resource *dockertest.Resource
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 var client *openai.Client
 
 var containerImage = os.Getenv("LOCALAI_IMAGE")
 var containerImageTag = os.Getenv("LOCALAI_IMAGE_TAG")
 var modelsDir = os.Getenv("LOCALAI_MODELS_DIR")
+<<<<<<< HEAD
 var apiEndpoint = os.Getenv("LOCALAI_API_ENDPOINT")
 var apiKey = os.Getenv("LOCALAI_API_KEY")
 
 const (
 	defaultApiPort = "8080"
 )
+=======
+var apiPort = os.Getenv("LOCALAI_API_PORT")
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 
 func TestLocalAI(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -35,6 +51,7 @@ func TestLocalAI(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 
+<<<<<<< HEAD
 	var defaultConfig openai.ClientConfig
 	if apiEndpoint == "" {
 		startDockerImage()
@@ -77,6 +94,24 @@ func (l *logConsumer) Accept(log testcontainers.Log) {
 }
 
 func startDockerImage() {
+=======
+	if containerImage == "" {
+		Fail("LOCALAI_IMAGE is not set")
+	}
+	if containerImageTag == "" {
+		Fail("LOCALAI_IMAGE_TAG is not set")
+	}
+	if apiPort == "" {
+		apiPort = "8080"
+	}
+
+	p, err := dockertest.NewPool("")
+	Expect(err).To(Not(HaveOccurred()))
+	Expect(p.Client.Ping()).To(Succeed())
+
+	pool = p
+
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 	// get cwd
 	cwd, err := os.Getwd()
 	Expect(err).To(Not(HaveOccurred()))
@@ -87,6 +122,7 @@ func startDockerImage() {
 	}
 
 	proc := runtime.NumCPU()
+<<<<<<< HEAD
 
 	req := testcontainers.ContainerRequest{
 
@@ -127,3 +163,44 @@ func startDockerImage() {
 
 	container = c
 }
+=======
+	options := &dockertest.RunOptions{
+		Repository: containerImage,
+		Tag:        containerImageTag,
+		//	Cmd:        []string{"server", "/data"},
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"8080/tcp": []docker.PortBinding{{HostPort: apiPort}},
+		},
+		Env:    []string{"MODELS_PATH=/models", "DEBUG=true", "THREADS=" + fmt.Sprint(proc)},
+		Mounts: []string{md + ":/models"},
+	}
+
+	r, err := pool.RunWithOptions(options)
+	Expect(err).To(Not(HaveOccurred()))
+
+	resource = r
+
+	defaultConfig := openai.DefaultConfig("")
+	defaultConfig.BaseURL = "http://localhost:" + apiPort + "/v1"
+
+	// Wait for API to be ready
+	client = openai.NewClientWithConfig(defaultConfig)
+
+	Eventually(func() error {
+		_, err := client.ListModels(context.TODO())
+		return err
+	}, "20m").ShouldNot(HaveOccurred())
+})
+
+var _ = AfterSuite(func() {
+	Expect(pool.Purge(resource)).To(Succeed())
+	//dat, err := os.ReadFile(resource.Container.LogPath)
+	//Expect(err).To(Not(HaveOccurred()))
+	//Expect(string(dat)).To(ContainSubstring("GRPC Service Ready"))
+	//fmt.Println(string(dat))
+})
+
+var _ = AfterEach(func() {
+	//Expect(dbClient.Clear()).To(Succeed())
+})
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))

@@ -1,19 +1,30 @@
 package e2e_test
 
 import (
+<<<<<<< HEAD
 	"bytes"
 	"context"
 	"encoding/json"
+=======
+	"context"
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 
+<<<<<<< HEAD
 	"github.com/mudler/LocalAI/core/schema"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+=======
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/sashabaranov/go-openai"
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 )
 
 var _ = Describe("E2E test", func() {
@@ -43,6 +54,7 @@ var _ = Describe("E2E test", func() {
 				Expect(resp.Choices[0].Message.Content).To(Or(ContainSubstring("4"), ContainSubstring("four")), fmt.Sprint(resp.Choices[0].Message.Content))
 			})
 		})
+<<<<<<< HEAD
 
 		Context("function calls", func() {
 			It("correctly invoke", func() {
@@ -138,10 +150,20 @@ var _ = Describe("E2E test", func() {
 						Size:           openai.CreateImageSize256x256,
 						Quality:        "1",
 						ResponseFormat: openai.CreateImageResponseFormatURL,
+=======
+		Context("images", func() {
+			It("correctly", func() {
+				resp, err := client.CreateImage(context.TODO(),
+					openai.ImageRequest{
+						Prompt: "test",
+						Size:   openai.CreateImageSize512x512,
+						//ResponseFormat: openai.CreateImageResponseFormatURL,
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 					},
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.Data)).To(Equal(1), fmt.Sprint(resp))
+<<<<<<< HEAD
 				Expect(resp.Data[0].URL).To(ContainSubstring("png"), fmt.Sprint(resp.Data[0].URL))
 			})
 			It("correctly changes the response format to base64", func() {
@@ -156,6 +178,9 @@ var _ = Describe("E2E test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.Data)).To(Equal(1), fmt.Sprint(resp))
 				Expect(resp.Data[0].B64JSON).ToNot(BeEmpty(), fmt.Sprint(resp.Data[0].B64JSON))
+=======
+				Expect(resp.Data[0].URL).To(ContainSubstring("http://localhost:8080"), fmt.Sprint(resp.Data[0].URL))
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 			})
 		})
 		Context("embeddings", func() {
@@ -173,7 +198,11 @@ var _ = Describe("E2E test", func() {
 		})
 		Context("vision", func() {
 			It("correctly", func() {
+<<<<<<< HEAD
 				model := "gpt-4o"
+=======
+				model := "gpt-4-vision-preview"
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 				resp, err := client.CreateChatCompletion(context.TODO(),
 					openai.ChatCompletionRequest{
 						Model: model, Messages: []openai.ChatCompletionMessage{
@@ -231,6 +260,7 @@ var _ = Describe("E2E test", func() {
 				Expect(resp.Text).To(ContainSubstring("This is the"), fmt.Sprint(resp.Text))
 			})
 		})
+<<<<<<< HEAD
 		Context("vad", func() {
 			It("correctly", func() {
 				modelName := "silero-vad"
@@ -303,6 +333,8 @@ var _ = Describe("E2E test", func() {
 				Expect(len(deserializedResponse.Results)).To(BeNumerically(">", 0))
 			})
 		})
+=======
+>>>>>>> f1b4a748 (feat(aio): add tests, update model definitions (#1880))
 	})
 })
 
