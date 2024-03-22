@@ -8,8 +8,8 @@ import (
 	"math"
 	"slices"
 
-	"github.com/mudler/LocalAI/pkg/grpc/base"
-	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
+	"github.com/go-skynet/LocalAI/pkg/grpc/base"
+	pb "github.com/go-skynet/LocalAI/pkg/grpc/proto"
 
 	"github.com/rs/zerolog/log"
 )
@@ -311,16 +311,12 @@ func (s *Store) StoresGet(opts *pb.StoresGetOptions) (pb.StoresGetResult, error)
 }
 
 func isNormalized(k []float32) bool {
-	var sum float64
-
+	var sum float32
 	for _, v := range k {
-		v64 := float64(v)
-		sum += v64*v64
+		sum += v
 	}
 
-	s := math.Sqrt(sum)
-
-	return s >= 0.99 && s <= 1.01
+	return sum == 1.0
 }
 
 // TODO: This we could replace with handwritten SIMD code
@@ -332,7 +328,7 @@ func normalizedCosineSimilarity(k1, k2 []float32) float32 {
 		dot += k1[i] * k2[i]
 	}
 
-	assert(dot >= -1.01 && dot <= 1.01, fmt.Sprintf("dot = %f", dot))
+	assert(dot >= -1 && dot <= 1, fmt.Sprintf("dot = %f", dot))
 
 	// 2.0 * (1.0 - dot) would be the Euclidean distance
 	return dot
@@ -422,7 +418,7 @@ func cosineSimilarity(k1, k2 []float32, mag1 float64) float32 {
 
 	sim := float32(dot / (mag1 * math.Sqrt(mag2)))
 
-	assert(sim >= -1.01 && sim <= 1.01, fmt.Sprintf("sim = %f", sim))
+	assert(sim >= -1 && sim <= 1, fmt.Sprintf("sim = %f", sim))
 
 	return sim
 }

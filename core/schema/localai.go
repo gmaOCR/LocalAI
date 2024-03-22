@@ -1,17 +1,11 @@
-<<<<<<< HEAD
 package schema
 
 import (
-	"github.com/mudler/LocalAI/core/p2p"
 	gopsutil "github.com/shirou/gopsutil/v3/process"
 )
 
 type BackendMonitorRequest struct {
-	BasicModelRequest
-}
-
-type TokenMetricsRequest struct {
-	BasicModelRequest
+	Model string `json:"model" yaml:"model"`
 }
 
 type BackendMonitorResponse struct {
@@ -20,48 +14,11 @@ type BackendMonitorResponse struct {
 	CPUPercent    float64
 }
 
-type GalleryResponse struct {
-	ID        string `json:"uuid"`
-	StatusURL string `json:"status"`
-}
-
-type VideoRequest struct {
-	BasicModelRequest
-	Prompt         string  `json:"prompt" yaml:"prompt"`
-	StartImage     string  `json:"start_image" yaml:"start_image"`
-	EndImage       string  `json:"end_image" yaml:"end_image"`
-	Width          int32   `json:"width" yaml:"width"`
-	Height         int32   `json:"height" yaml:"height"`
-	NumFrames      int32   `json:"num_frames" yaml:"num_frames"`
-	FPS            int32   `json:"fps" yaml:"fps"`
-	Seed           int32   `json:"seed" yaml:"seed"`
-	CFGScale       float32 `json:"cfg_scale" yaml:"cfg_scale"`
-	ResponseFormat string  `json:"response_format" yaml:"response_format"`
-}
-
-// @Description TTS request body
 type TTSRequest struct {
-	BasicModelRequest
-	Input    string `json:"input" yaml:"input"` // text input
-	Voice    string `json:"voice" yaml:"voice"` // voice audio file or speaker id
-	Backend  string `json:"backend" yaml:"backend"`
-	Language string `json:"language,omitempty" yaml:"language,omitempty"`               // (optional) language to use with TTS model
-	Format   string `json:"response_format,omitempty" yaml:"response_format,omitempty"` // (optional) output format
-}
-
-// @Description VAD request body
-type VADRequest struct {
-	BasicModelRequest
-	Audio []float32 `json:"audio" yaml:"audio"` // model name or full path
-}
-
-type VADSegment struct {
-	Start float32 `json:"start" yaml:"start"`
-	End   float32 `json:"end" yaml:"end"`
-}
-
-type VADResponse struct {
-	Segments []VADSegment `json:"segments" yaml:"segments"`
+	Model   string `json:"model" yaml:"model"`
+	Input   string `json:"input" yaml:"input"`
+	Voice   string `json:"voice" yaml:"voice"`
+	Backend string `json:"backend" yaml:"backend"`
 }
 
 type StoresSet struct {
@@ -100,41 +57,3 @@ type StoresFindResponse struct {
 	Values       []string    `json:"values" yaml:"values"`
 	Similarities []float32   `json:"similarities" yaml:"similarities"`
 }
-
-type P2PNodesResponse struct {
-	Nodes          []p2p.NodeData `json:"nodes" yaml:"nodes"`
-	FederatedNodes []p2p.NodeData `json:"federated_nodes" yaml:"federated_nodes"`
-}
-
-type SysInfoModel struct {
-	ID string `json:"id"`
-}
-
-type SystemInformationResponse struct {
-	Backends []string       `json:"backends"`
-	Models   []SysInfoModel `json:"loaded_models"`
-}
-=======
-package schema
-
-import (
-	gopsutil "github.com/shirou/gopsutil/v3/process"
-)
-
-type BackendMonitorRequest struct {
-	Model string `json:"model" yaml:"model"`
-}
-
-type BackendMonitorResponse struct {
-	MemoryInfo    *gopsutil.MemoryInfoStat
-	MemoryPercent float32
-	CPUPercent    float64
-}
-
-type TTSRequest struct {
-	Model   string `json:"model" yaml:"model"`
-	Input   string `json:"input" yaml:"input"`
-	Voice   string `json:"voice" yaml:"voice"`
-	Backend string `json:"backend" yaml:"backend"`
-}
->>>>>>> 1ffb92d8 (refactor: move remaining api packages to core (#1731))
