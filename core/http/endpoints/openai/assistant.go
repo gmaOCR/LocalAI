@@ -2,12 +2,21 @@ package openai
 
 import (
 	"fmt"
+<<<<<<< HEAD
+=======
+	"github.com/go-skynet/LocalAI/core/config"
+	model "github.com/go-skynet/LocalAI/pkg/model"
+	"github.com/go-skynet/LocalAI/pkg/utils"
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
+<<<<<<< HEAD
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/microcosm-cc/bluemonday"
@@ -17,6 +26,8 @@ import (
 	model "github.com/mudler/LocalAI/pkg/model"
 	"github.com/mudler/LocalAI/pkg/utils"
 	"github.com/rs/zerolog/log"
+=======
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 )
 
 // ToolType defines a type for tool options
@@ -69,11 +80,14 @@ type AssistantRequest struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
+<<<<<<< HEAD
 // CreateAssistantEndpoint is the OpenAI Assistant API endpoint https://platform.openai.com/docs/api-reference/assistants/createAssistant
 // @Summary Create an assistant with a model and instructions.
 // @Param request body AssistantRequest true "query params"
 // @Success 200 {object} Assistant "Response"
 // @Router /v1/assistants [post]
+=======
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 func CreateAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		request := new(AssistantRequest)
@@ -82,9 +96,15 @@ func CreateAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoad
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
 
+<<<<<<< HEAD
 		if !modelExists(cl, ml, request.Model) {
 			log.Warn().Msgf("Model: %s was not found in list of models.", request.Model)
 			return c.Status(fiber.StatusBadRequest).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Model %q not found", request.Model)))
+=======
+		if !modelExists(ml, request.Model) {
+			log.Warn().Msgf("Model: %s was not found in list of models.", request.Model)
+			return c.Status(fiber.StatusBadRequest).SendString("Model " + request.Model + " not found")
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		}
 
 		if request.Tools == nil {
@@ -127,6 +147,7 @@ func generateRandomID() int64 {
 	return currentId
 }
 
+<<<<<<< HEAD
 // ListAssistantsEndpoint is the OpenAI Assistant API endpoint to list assistents https://platform.openai.com/docs/api-reference/assistants/listAssistants
 // @Summary List available assistents
 // @Param limit query int false "Limit the number of assistants returned"
@@ -135,6 +156,8 @@ func generateRandomID() int64 {
 // @Param before query string false "Return assistants created before the given ID"
 // @Success 200 {object} []Assistant "Response"
 // @Router /v1/assistants [get]
+=======
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 func ListAssistantsEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		// Because we're altering the existing assistants list we should just duplicate it for now.
@@ -148,7 +171,11 @@ func ListAssistantsEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoade
 		// Convert string limit to integer
 		limit, err := strconv.Atoi(limitQuery)
 		if err != nil {
+<<<<<<< HEAD
 			return c.Status(http.StatusBadRequest).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Invalid limit query value: %s", limitQuery)))
+=======
+			return c.Status(http.StatusBadRequest).SendString(fmt.Sprintf("Invalid limit query value: %s", limitQuery))
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		}
 
 		// Sort assistants
@@ -224,9 +251,15 @@ func filterAssistantsAfterID(assistants []Assistant, id string) []Assistant {
 	return filteredAssistants
 }
 
+<<<<<<< HEAD
 func modelExists(cl *config.BackendConfigLoader, ml *model.ModelLoader, modelName string) (found bool) {
 	found = false
 	models, err := services.ListModels(cl, ml, config.NoFilterFn, services.SKIP_IF_CONFIGURED)
+=======
+func modelExists(ml *model.ModelLoader, modelName string) (found bool) {
+	found = false
+	models, err := ml.ListModels()
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	if err != nil {
 		return
 	}
@@ -240,11 +273,21 @@ func modelExists(cl *config.BackendConfigLoader, ml *model.ModelLoader, modelNam
 	return
 }
 
+<<<<<<< HEAD
 // DeleteAssistantEndpoint is the OpenAI Assistant API endpoint to delete assistents https://platform.openai.com/docs/api-reference/assistants/deleteAssistant
 // @Summary Delete assistents
 // @Success 200 {object} schema.DeleteAssistantResponse "Response"
 // @Router /v1/assistants/{assistant_id} [delete]
 func DeleteAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+=======
+func DeleteAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+	type DeleteAssistantResponse struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		Deleted bool   `json:"deleted"`
+	}
+
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	return func(c *fiber.Ctx) error {
 		assistantID := c.Params("assistant_id")
 		if assistantID == "" {
@@ -255,7 +298,11 @@ func DeleteAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoad
 			if assistant.ID == assistantID {
 				Assistants = append(Assistants[:i], Assistants[i+1:]...)
 				utils.SaveConfig(appConfig.ConfigsDir, AssistantsConfigFile, Assistants)
+<<<<<<< HEAD
 				return c.Status(fiber.StatusOK).JSON(schema.DeleteAssistantResponse{
+=======
+				return c.Status(fiber.StatusOK).JSON(DeleteAssistantResponse{
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 					ID:      assistantID,
 					Object:  "assistant.deleted",
 					Deleted: true,
@@ -264,7 +311,11 @@ func DeleteAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoad
 		}
 
 		log.Warn().Msgf("Unable to find assistant %s for deletion", assistantID)
+<<<<<<< HEAD
 		return c.Status(fiber.StatusNotFound).JSON(schema.DeleteAssistantResponse{
+=======
+		return c.Status(fiber.StatusNotFound).JSON(DeleteAssistantResponse{
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 			ID:      assistantID,
 			Object:  "assistant.deleted",
 			Deleted: false,
@@ -272,10 +323,13 @@ func DeleteAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoad
 	}
 }
 
+<<<<<<< HEAD
 // GetAssistantEndpoint is the OpenAI Assistant API endpoint to get assistents https://platform.openai.com/docs/api-reference/assistants/getAssistant
 // @Summary Get assistent data
 // @Success 200 {object} Assistant "Response"
 // @Router /v1/assistants/{assistant_id} [get]
+=======
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 func GetAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		assistantID := c.Params("assistant_id")
@@ -289,7 +343,11 @@ func GetAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader,
 			}
 		}
 
+<<<<<<< HEAD
 		return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find assistant with id: %s", assistantID)))
+=======
+		return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find assistant with id: %s", assistantID))
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	}
 }
 
@@ -305,9 +363,25 @@ var (
 	AssistantsFileConfigFile = "assistantsFile.json"
 )
 
+<<<<<<< HEAD
 func CreateAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		request := new(schema.AssistantFileRequest)
+=======
+type AssistantFileRequest struct {
+	FileID string `json:"file_id"`
+}
+
+type DeleteAssistantFileResponse struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Deleted bool   `json:"deleted"`
+}
+
+func CreateAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		request := new(AssistantFileRequest)
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		if err := c.BodyParser(request); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 		}
@@ -338,17 +412,29 @@ func CreateAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.Model
 					}
 				}
 
+<<<<<<< HEAD
 				return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find file_id: %s", request.FileID)))
 			}
 		}
 
 		return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find %q", assistantID)))
+=======
+				return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find file_id: %s", request.FileID))
+			}
+		}
+
+		return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find "))
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	}
 }
 
 func ListAssistantFilesEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfig *config.ApplicationConfig) func(c *fiber.Ctx) error {
 	type ListAssistantFiles struct {
+<<<<<<< HEAD
 		Data   []schema.File
+=======
+		Data   []File
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		Object string
 	}
 
@@ -443,7 +529,11 @@ func ModifyAssistantEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoad
 				return c.Status(fiber.StatusOK).JSON(newAssistant)
 			}
 		}
+<<<<<<< HEAD
 		return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find assistant with id: %s", assistantID)))
+=======
+		return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find assistant with id: %s", assistantID))
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	}
 }
 
@@ -458,6 +548,7 @@ func DeleteAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.Model
 		for i, assistant := range Assistants {
 			if assistant.ID == assistantID {
 				for j, fileId := range assistant.FileIDs {
+<<<<<<< HEAD
 					Assistants[i].FileIDs = append(Assistants[i].FileIDs[:j], Assistants[i].FileIDs[j+1:]...)
 
 					// Check if the file exists in the assistantFiles slice
@@ -471,6 +562,23 @@ func DeleteAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.Model
 								Object:  "assistant.file.deleted",
 								Deleted: true,
 							})
+=======
+					if fileId == fileId {
+						Assistants[i].FileIDs = append(Assistants[i].FileIDs[:j], Assistants[i].FileIDs[j+1:]...)
+
+						// Check if the file exists in the assistantFiles slice
+						for i, assistantFile := range AssistantFiles {
+							if assistantFile.ID == fileId {
+								// Remove the file from the assistantFiles slice
+								AssistantFiles = append(AssistantFiles[:i], AssistantFiles[i+1:]...)
+								utils.SaveConfig(appConfig.ConfigsDir, AssistantsFileConfigFile, AssistantFiles)
+								return c.Status(fiber.StatusOK).JSON(DeleteAssistantFileResponse{
+									ID:      fileId,
+									Object:  "assistant.file.deleted",
+									Deleted: true,
+								})
+							}
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 						}
 					}
 				}
@@ -482,7 +590,11 @@ func DeleteAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.Model
 						AssistantFiles = append(AssistantFiles[:i], AssistantFiles[i+1:]...)
 						utils.SaveConfig(appConfig.ConfigsDir, AssistantsFileConfigFile, AssistantFiles)
 
+<<<<<<< HEAD
 						return c.Status(fiber.StatusNotFound).JSON(schema.DeleteAssistantFileResponse{
+=======
+						return c.Status(fiber.StatusNotFound).JSON(DeleteAssistantFileResponse{
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 							ID:      fileId,
 							Object:  "assistant.file.deleted",
 							Deleted: true,
@@ -493,7 +605,11 @@ func DeleteAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.Model
 		}
 		log.Warn().Msgf("Unable to find assistant: %s", assistantID)
 
+<<<<<<< HEAD
 		return c.Status(fiber.StatusNotFound).JSON(schema.DeleteAssistantFileResponse{
+=======
+		return c.Status(fiber.StatusNotFound).JSON(DeleteAssistantFileResponse{
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 			ID:      fileId,
 			Object:  "assistant.file.deleted",
 			Deleted: false,
@@ -514,9 +630,16 @@ func GetAssistantFileEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoa
 				if assistantFile.ID == fileId {
 					return c.Status(fiber.StatusOK).JSON(assistantFile)
 				}
+<<<<<<< HEAD
 				return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find assistant file with file_id: %s", fileId)))
 			}
 		}
 		return c.Status(fiber.StatusNotFound).SendString(bluemonday.StrictPolicy().Sanitize(fmt.Sprintf("Unable to find assistant file with assistant_id: %s", assistantID)))
+=======
+				return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find assistant file with file_id: %s", fileId))
+			}
+		}
+		return c.Status(fiber.StatusNotFound).SendString(fmt.Sprintf("Unable to find assistant file with assistant_id: %s", assistantID))
+>>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	}
 }
