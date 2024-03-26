@@ -1,13 +1,13 @@
-name: dreamshaper-8-inpainting
+name: stablediffusion
 parameters:
-  model: Lykon/dreamshaper-8-inpainting
+  model: runwayml/stable-diffusion-v1-5
 backend: diffusers
 step: 25
 f16: true
 diffusers:
-  pipeline_type: StableDiffusionInpaintPipeline
+  pipeline_type: StableDiffusionPipeline
   cuda: true
-  enable_parameters: "prompt,negative_prompt,num_inference_steps,guidance_scale,scheduler_type,seed,image,mask_image,size,clip_skip"
+  enable_parameters: "negative_prompt,num_inference_steps"
   scheduler_type: "k_dpmpp_2m"
 
 usage: |

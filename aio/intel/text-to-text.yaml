@@ -1,53 +1,51 @@
-context_size: 4096
-f16: true
-function:
-  capture_llm_results:
-  - (?s)<Thought>(.*?)</Thought>
-  grammar:
-    properties_order: name,arguments
-  json_regex_match:
-  - (?s)<Output>(.*?)</Output>
-  replace_llm_results:
-  - key: (?s)<Thought>(.*?)</Thought>
-    value: ""
-mmap: true
 name: gpt-4
+mmap: false
+f16: false
 parameters:
-  model: localai-functioncall-qwen2.5-7b-v0.5-q4_k_m.gguf
-stopwords:
-- <|im_end|>
-- <dummy32000>
-- </s>
+  model: huggingface://NousResearch/Hermes-2-Pro-Mistral-7B-GGUF/Hermes-2-Pro-Mistral-7B.Q6_K.gguf
+
+roles:
+  assistant_function_call: assistant
+  function: tool
 template:
-  chat: |
-    {{.Input -}}
-    <|im_start|>assistant
   chat_message: |
-    <|im_start|>{{ .RoleName }}
-    {{ if .FunctionCall -}}
-    Function call:
-    {{ else if eq .RoleName "tool" -}}
-    Function response:
-    {{ end -}}
-    {{ if .Content -}}
-    {{.Content }}
-    {{ end -}}
-    {{ if .FunctionCall -}}
-    {{toJson .FunctionCall}}
-    {{ end -}}<|im_end|>
-  completion: |
-    {{.Input}}
+    <|im_start|>{{if eq .RoleName "assistant"}}assistant{{else if eq .RoleName "system"}}system{{else if eq .RoleName "function"}}{{.Role}}{{else if eq .RoleName "user"}}user{{end}}
+    {{ if eq .RoleName "assistant_function_call" }}<tool_call>{{end}}
+    {{ if eq .RoleName "function" }}<tool_result>{{end}}
+    {{if .Content}}{{.Content}}{{end}}
+    {{if .FunctionCall}}{{toJson .FunctionCall}}{{end}}
+    {{ if eq .RoleName "assistant_function_call" }}</tool_call>{{end}}
+    {{ if eq .RoleName "function" }}</tool_result>{{end}}
+    <|im_end|>
+  # https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF#prompt-format-for-function-calling
   function: |
     <|im_start|>system
-    You are an AI assistant that executes function calls, and these are the tools at your disposal:
+    You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: 
+    <tools>
     {{range .Functions}}
     {'type': 'function', 'function': {'name': '{{.Name}}', 'description': '{{.Description}}', 'parameters': {{toJson .Parameters}} }}
     {{end}}
-    <|im_end|>
-    {{.Input -}}
+    </tools> 
+    Use the following pydantic model json schema for each tool call you will make: 
+    {'title': 'FunctionCall', 'type': 'object', 'properties': {'arguments': {'title': 'Arguments', 'type': 'object'}, 'name': {'title': 'Name', 'type': 'string'}}, 'required': ['arguments', 'name']} 
+    For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags as follows:
+    <tool_call>
+    {'arguments': <args-dict>, 'name': <function-name>}
+    </tool_call><|im_end|>
+    {{.Input}}
     <|im_start|>assistant
-
-download_files:
-- filename: localai-functioncall-phi-4-v0.3-q4_k_m.gguf
-  sha256: 23fee048ded2a6e2e1a7b6bbefa6cbf83068f194caa9552aecbaa00fec8a16d5
-  uri: huggingface://mudler/LocalAI-functioncall-phi-4-v0.3-Q4_K_M-GGUF/localai-functioncall-phi-4-v0.3-q4_k_m.gguf
+    <tool_call>
+  chat: |
+    {{.Input}}
+    <|im_start|>assistant
+  completion: |
+    {{.Input}}
+context_size: 4096
+stopwords:
+- <|im_end|>
+- <dummy32000>
+usage: |
+      curl http://localhost:8080/v1/chat/completions -H "Content-Type: application/json" -d '{
+          "model": "gpt-4",
+          "messages": [{"role": "user", "content": "How are you doing?", "temperature": 0.1}]
+      }'
