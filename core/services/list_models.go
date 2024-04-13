@@ -1,63 +1,72 @@
 package services
 
 import (
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/pkg/model"
+	"regexp"
+
+	"github.com/go-skynet/LocalAI/core/config"
+	"github.com/go-skynet/LocalAI/core/schema"
+	"github.com/go-skynet/LocalAI/pkg/model"
 )
 
-type LooseFilePolicy int
+type ListModelsService struct {
+	bcl       *config.BackendConfigLoader
+	ml        *model.ModelLoader
+	appConfig *config.ApplicationConfig
+}
 
-const (
-	LOOSE_ONLY LooseFilePolicy = iota
-	SKIP_IF_CONFIGURED
-	SKIP_ALWAYS
-	ALWAYS_INCLUDE
-)
+func NewListModelsService(ml *model.ModelLoader, bcl *config.BackendConfigLoader, appConfig *config.ApplicationConfig) *ListModelsService {
+	return &ListModelsService{
+		bcl:       bcl,
+		ml:        ml,
+		appConfig: appConfig,
+	}
+}
 
-func ListModels(bcl *config.BackendConfigLoader, ml *model.ModelLoader, filter config.BackendConfigFilterFn, looseFilePolicy LooseFilePolicy) ([]string, error) {
+func (lms *ListModelsService) ListModels(filter string, excludeConfigured bool) ([]schema.OpenAIModel, error) {
 
-	var skipMap map[string]interface{} = map[string]interface{}{}
-
-	dataModels := []string{}
-
-	// Start with known configurations
-
-	for _, c := range bcl.GetBackendConfigsByFilter(filter) {
-		// Is this better than looseFilePolicy <= SKIP_IF_CONFIGURED ? less performant but more readable?
-		if (looseFilePolicy == SKIP_IF_CONFIGURED) || (looseFilePolicy == LOOSE_ONLY) {
-			skipMap[c.Model] = nil
-		}
-		if looseFilePolicy != LOOSE_ONLY {
-			dataModels = append(dataModels, c.Name)
-		}
+	models, err := lms.ml.ListModels()
+	if err != nil {
+		return nil, err
 	}
 
-	// Then iterate through the loose files if requested.
-	if looseFilePolicy != SKIP_ALWAYS {
+	var mm map[string]interface{} = map[string]interface{}{}
 
-		models, err := ml.ListFilesInModelPath()
+	dataModels := []schema.OpenAIModel{}
+
+	var filterFn func(name string) bool
+
+	// If filter is not specified, do not filter the list by model name
+	if filter == "" {
+		filterFn = func(_ string) bool { return true }
+	} else {
+		// If filter _IS_ specified, we compile it to a regex which is used to create the filterFn
+		rxp, err := regexp.Compile(filter)
 		if err != nil {
 			return nil, err
 		}
-		for _, m := range models {
-			// And only adds them if they shouldn't be skipped.
-			if _, exists := skipMap[m]; !exists && filter(m, nil) {
-				dataModels = append(dataModels, m)
-			}
+		filterFn = func(name string) bool {
+			return rxp.MatchString(name)
+		}
+	}
+
+	// Start with the known configurations
+	for _, c := range lms.bcl.GetAllBackendConfigs() {
+		if excludeConfigured {
+			mm[c.Model] = nil
+		}
+
+		if filterFn(c.Name) {
+			dataModels = append(dataModels, schema.OpenAIModel{ID: c.Name, Object: "model"})
+		}
+	}
+
+	// Then iterate through the loose files:
+	for _, m := range models {
+		// And only adds them if they shouldn't be skipped.
+		if _, exists := mm[m]; !exists && filterFn(m) {
+			dataModels = append(dataModels, schema.OpenAIModel{ID: m, Object: "model"})
 		}
 	}
 
 	return dataModels, nil
-}
-
-func CheckIfModelExists(bcl *config.BackendConfigLoader, ml *model.ModelLoader, modelName string, looseFilePolicy LooseFilePolicy) (bool, error) {
-	filter, err := config.BuildNameFilterFn(modelName)
-	if err != nil {
-		return false, err
-	}
-	models, err := ListModels(bcl, ml, filter, looseFilePolicy)
-	if err != nil {
-		return false, err
-	}
-	return (len(models) > 0), nil
 }

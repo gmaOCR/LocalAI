@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 var base64DownloadClient http.Client = http.Client{
 	Timeout: 30 * time.Second,
 }
 
-var dataURIPattern = regexp.MustCompile(`^data:([^;]+);base64,`)
+// this function check if the string is an URL, if it's an URL downloads the image in memory
+// encodes it in base64 and returns the base64 string
 
-// GetContentURIAsBase64 checks if the string is an URL, if it's an URL downloads the content in memory encodes it in base64 and returns the base64 string, otherwise returns the string by stripping base64 data headers
-func GetContentURIAsBase64(s string) (string, error) {
+// This may look weird down in pkg/utils while it is currently only used in core/config
+//
+//	but I believe it may be useful for MQTT as well in the near future, so I'm
+//	extracting it while I'm thinking of it.
+func GetImageURLAsBase64(s string) (string, error) {
 	if strings.HasPrefix(s, "http") {
 		// download the image
 		resp, err := base64DownloadClient.Get(s)
@@ -41,11 +42,9 @@ func GetContentURIAsBase64(s string) (string, error) {
 		return encoded, nil
 	}
 
-	// Match any data URI prefix pattern
-	if match := dataURIPattern.FindString(s); match != "" {
-		log.Debug().Msgf("Found data URI prefix: %s", match)
-		return strings.Replace(s, match, "", 1), nil
+	// if the string instead is prefixed with "data:image/jpeg;base64,", drop it
+	if strings.HasPrefix(s, "data:image/jpeg;base64,") {
+		return strings.ReplaceAll(s, "data:image/jpeg;base64,", ""), nil
 	}
-
-	return "", fmt.Errorf("not valid base64 data type string")
+	return "", fmt.Errorf("not valid string")
 }

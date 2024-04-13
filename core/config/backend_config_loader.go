@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -11,182 +12,72 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/mudler/LocalAI/core/schema"
-	"github.com/mudler/LocalAI/pkg/downloader"
-	"github.com/mudler/LocalAI/pkg/utils"
+	"github.com/go-skynet/LocalAI/core/schema"
+	"github.com/go-skynet/LocalAI/pkg/downloader"
+	"github.com/go-skynet/LocalAI/pkg/grammar"
+	"github.com/go-skynet/LocalAI/pkg/utils"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 type BackendConfigLoader struct {
-	configs   map[string]BackendConfig
-	modelPath string
+	configs map[string]BackendConfig
 	sync.Mutex
 }
 
-func NewBackendConfigLoader(modelPath string) *BackendConfigLoader {
-	return &BackendConfigLoader{
-		configs:   make(map[string]BackendConfig),
-		modelPath: modelPath,
-	}
-}
-
-type LoadOptions struct {
-	modelPath        string
+type ConfigLoaderOptions struct {
 	debug            bool
 	threads, ctxSize int
 	f16              bool
 }
 
 func LoadOptionDebug(debug bool) ConfigLoaderOption {
-	return func(o *LoadOptions) {
+	return func(o *ConfigLoaderOptions) {
 		o.debug = debug
 	}
 }
 
 func LoadOptionThreads(threads int) ConfigLoaderOption {
-	return func(o *LoadOptions) {
+	return func(o *ConfigLoaderOptions) {
 		o.threads = threads
 	}
 }
 
 func LoadOptionContextSize(ctxSize int) ConfigLoaderOption {
-	return func(o *LoadOptions) {
+	return func(o *ConfigLoaderOptions) {
 		o.ctxSize = ctxSize
 	}
 }
 
-func ModelPath(modelPath string) ConfigLoaderOption {
-	return func(o *LoadOptions) {
-		o.modelPath = modelPath
-	}
-}
-
 func LoadOptionF16(f16 bool) ConfigLoaderOption {
-	return func(o *LoadOptions) {
+	return func(o *ConfigLoaderOptions) {
 		o.f16 = f16
 	}
 }
 
-type ConfigLoaderOption func(*LoadOptions)
+type ConfigLoaderOption func(*ConfigLoaderOptions)
 
-func (lo *LoadOptions) Apply(options ...ConfigLoaderOption) {
+func (lo *ConfigLoaderOptions) Apply(options ...ConfigLoaderOption) {
 	for _, l := range options {
 		l(lo)
 	}
 }
 
-// TODO: either in the next PR or the next commit, I want to merge these down into a single function that looks at the first few characters of the file to determine if we need to deserialize to []BackendConfig or BackendConfig
-func readMultipleBackendConfigsFromFile(file string, opts ...ConfigLoaderOption) ([]*BackendConfig, error) {
-	c := &[]*BackendConfig{}
-	f, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("readMultipleBackendConfigsFromFile cannot read config file %q: %w", file, err)
+func NewBackendConfigLoader() *BackendConfigLoader {
+	return &BackendConfigLoader{
+		configs: make(map[string]BackendConfig),
 	}
-	if err := yaml.Unmarshal(f, c); err != nil {
-		return nil, fmt.Errorf("readMultipleBackendConfigsFromFile cannot unmarshal config file %q: %w", file, err)
-	}
-
-	for _, cc := range *c {
-		cc.SetDefaults(opts...)
-	}
-
-	return *c, nil
-}
-
-func readBackendConfigFromFile(file string, opts ...ConfigLoaderOption) (*BackendConfig, error) {
-	lo := &LoadOptions{}
-	lo.Apply(opts...)
-
-	c := &BackendConfig{}
-	f, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("readBackendConfigFromFile cannot read config file %q: %w", file, err)
-	}
-	if err := yaml.Unmarshal(f, c); err != nil {
-		return nil, fmt.Errorf("readBackendConfigFromFile cannot unmarshal config file %q: %w", file, err)
-	}
-
-	c.SetDefaults(opts...)
-	return c, nil
-}
-
-// Load a config file for a model
-func (bcl *BackendConfigLoader) LoadBackendConfigFileByName(modelName, modelPath string, opts ...ConfigLoaderOption) (*BackendConfig, error) {
-
-	// Load a config file if present after the model name
-	cfg := &BackendConfig{
-		PredictionOptions: schema.PredictionOptions{
-			BasicModelRequest: schema.BasicModelRequest{
-				Model: modelName,
-			},
-		},
-	}
-
-	cfgExisting, exists := bcl.GetBackendConfig(modelName)
-	if exists {
-		cfg = &cfgExisting
-	} else {
-		// Try loading a model config file
-		modelConfig := filepath.Join(modelPath, modelName+".yaml")
-		if _, err := os.Stat(modelConfig); err == nil {
-			if err := bcl.LoadBackendConfig(
-				modelConfig, opts...,
-			); err != nil {
-				return nil, fmt.Errorf("failed loading model config (%s) %s", modelConfig, err.Error())
-			}
-			cfgExisting, exists = bcl.GetBackendConfig(modelName)
-			if exists {
-				cfg = &cfgExisting
-			}
-		}
-	}
-
-	cfg.SetDefaults(append(opts, ModelPath(modelPath))...)
-
-	return cfg, nil
-}
-
-func (bcl *BackendConfigLoader) LoadBackendConfigFileByNameDefaultOptions(modelName string, appConfig *ApplicationConfig) (*BackendConfig, error) {
-	return bcl.LoadBackendConfigFileByName(modelName, appConfig.ModelPath,
-		LoadOptionDebug(appConfig.Debug),
-		LoadOptionThreads(appConfig.Threads),
-		LoadOptionContextSize(appConfig.ContextSize),
-		LoadOptionF16(appConfig.F16),
-		ModelPath(appConfig.ModelPath))
-}
-
-// This format is currently only used when reading a single file at startup, passed in via ApplicationConfig.ConfigFile
-func (bcl *BackendConfigLoader) LoadMultipleBackendConfigsSingleFile(file string, opts ...ConfigLoaderOption) error {
-	bcl.Lock()
-	defer bcl.Unlock()
-	c, err := readMultipleBackendConfigsFromFile(file, opts...)
-	if err != nil {
-		return fmt.Errorf("cannot load config file: %w", err)
-	}
-
-	for _, cc := range c {
-		if cc.Validate() {
-			bcl.configs[cc.Name] = *cc
-		}
-	}
-	return nil
 }
 
 func (bcl *BackendConfigLoader) LoadBackendConfig(file string, opts ...ConfigLoaderOption) error {
 	bcl.Lock()
 	defer bcl.Unlock()
-	c, err := readBackendConfigFromFile(file, opts...)
+	c, err := readBackendConfig(file, opts...)
 	if err != nil {
-		return fmt.Errorf("LoadBackendConfig cannot read config file %q: %w", file, err)
+		return fmt.Errorf("cannot read config file: %w", err)
 	}
 
-	if c.Validate() {
-		bcl.configs[c.Name] = *c
-	} else {
-		return fmt.Errorf("config is not valid")
-	}
-
+	bcl.configs[c.Name] = *c
 	return nil
 }
 
@@ -204,38 +95,20 @@ func (bcl *BackendConfigLoader) GetAllBackendConfigs() []BackendConfig {
 	for _, v := range bcl.configs {
 		res = append(res, v)
 	}
-
 	sort.SliceStable(res, func(i, j int) bool {
 		return res[i].Name < res[j].Name
 	})
-
 	return res
 }
 
-func (bcl *BackendConfigLoader) GetBackendConfigsByFilter(filter BackendConfigFilterFn) []BackendConfig {
+func (bcl *BackendConfigLoader) ListBackendConfigs() []string {
 	bcl.Lock()
 	defer bcl.Unlock()
-	var res []BackendConfig
-
-	if filter == nil {
-		filter = NoFilterFn
+	var res []string
+	for k := range bcl.configs {
+		res = append(res, k)
 	}
-
-	for n, v := range bcl.configs {
-		if filter(n, &v) {
-			res = append(res, v)
-		}
-	}
-
-	// TODO: I don't think this one needs to Sort on name... but we'll see what breaks.
-
 	return res
-}
-
-func (bcl *BackendConfigLoader) RemoveBackendConfig(m string) {
-	bcl.Lock()
-	defer bcl.Unlock()
-	delete(bcl.configs, m)
 }
 
 // Preload prepare models if they are not local but url or huggingface repositories
@@ -266,7 +139,7 @@ func (bcl *BackendConfigLoader) Preload(modelPath string) error {
 	for i, config := range bcl.configs {
 
 		// Download files and verify their SHA
-		for i, file := range config.DownloadFiles {
+		for _, file := range config.DownloadFiles {
 			log.Debug().Msgf("Checking %q exists and matches SHA", file.Filename)
 
 			if err := utils.VerifyPath(file.Filename, modelPath); err != nil {
@@ -275,18 +148,21 @@ func (bcl *BackendConfigLoader) Preload(modelPath string) error {
 			// Create file path
 			filePath := filepath.Join(modelPath, file.Filename)
 
-			if err := file.URI.DownloadFile(filePath, file.SHA256, i, len(config.DownloadFiles), status); err != nil {
+			if err := downloader.DownloadFile(file.URI, filePath, file.SHA256, status); err != nil {
 				return err
 			}
 		}
 
-		// If the model is an URL, expand it, and download the file
-		if config.IsModelURL() {
-			modelFileName := config.ModelFileName()
-			uri := downloader.URI(config.Model)
+		modelURL := config.PredictionOptions.Model
+		modelURL = downloader.ConvertURL(modelURL)
+
+		if downloader.LooksLikeURL(modelURL) {
+			// md5 of model name
+			md5Name := utils.MD5(modelURL)
+
 			// check if file exists
-			if _, err := os.Stat(filepath.Join(modelPath, modelFileName)); errors.Is(err, os.ErrNotExist) {
-				err := uri.DownloadFile(filepath.Join(modelPath, modelFileName), "", 0, 0, status)
+			if _, err := os.Stat(filepath.Join(modelPath, md5Name)); errors.Is(err, os.ErrNotExist) {
+				err := downloader.DownloadFile(modelURL, filepath.Join(modelPath, md5Name), "", status)
 				if err != nil {
 					return err
 				}
@@ -294,27 +170,9 @@ func (bcl *BackendConfigLoader) Preload(modelPath string) error {
 
 			cc := bcl.configs[i]
 			c := &cc
-			c.PredictionOptions.Model = modelFileName
+			c.PredictionOptions.Model = md5Name
 			bcl.configs[i] = *c
 		}
-
-		if config.IsMMProjURL() {
-			modelFileName := config.MMProjFileName()
-			uri := downloader.URI(config.MMProj)
-			// check if file exists
-			if _, err := os.Stat(filepath.Join(modelPath, modelFileName)); errors.Is(err, os.ErrNotExist) {
-				err := uri.DownloadFile(filepath.Join(modelPath, modelFileName), "", 0, 0, status)
-				if err != nil {
-					return err
-				}
-			}
-
-			cc := bcl.configs[i]
-			c := &cc
-			c.MMProj = modelFileName
-			bcl.configs[i] = *c
-		}
-
 		if bcl.configs[i].Name != "" {
 			glamText(fmt.Sprintf("**Model name**: _%s_", bcl.configs[i].Name))
 		}
@@ -330,15 +188,12 @@ func (bcl *BackendConfigLoader) Preload(modelPath string) error {
 	return nil
 }
 
-// LoadBackendConfigsFromPath reads all the configurations of the models from a path
-// (non-recursive)
 func (bcl *BackendConfigLoader) LoadBackendConfigsFromPath(path string, opts ...ConfigLoaderOption) error {
 	bcl.Lock()
 	defer bcl.Unlock()
-
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return fmt.Errorf("LoadBackendConfigsFromPath cannot read directory '%s': %w", path, err)
+		return err
 	}
 	files := make([]fs.FileInfo, 0, len(entries))
 	for _, entry := range entries {
@@ -350,21 +205,305 @@ func (bcl *BackendConfigLoader) LoadBackendConfigsFromPath(path string, opts ...
 	}
 	for _, file := range files {
 		// Skip templates, YAML and .keep files
-		if !strings.Contains(file.Name(), ".yaml") && !strings.Contains(file.Name(), ".yml") ||
-			strings.HasPrefix(file.Name(), ".") {
+		if !strings.Contains(file.Name(), ".yaml") && !strings.Contains(file.Name(), ".yml") {
 			continue
 		}
-		c, err := readBackendConfigFromFile(filepath.Join(path, file.Name()), opts...)
-		if err != nil {
-			log.Error().Err(err).Str("File Name", file.Name()).Msgf("LoadBackendConfigsFromPath cannot read config file")
-			continue
-		}
-		if c.Validate() {
+		c, err := readBackendConfig(filepath.Join(path, file.Name()), opts...)
+		if err == nil {
 			bcl.configs[c.Name] = *c
-		} else {
-			log.Error().Err(err).Str("Name", c.Name).Msgf("config is not valid")
 		}
 	}
 
 	return nil
+}
+
+func (bcl *BackendConfigLoader) LoadBackendConfigFile(file string, opts ...ConfigLoaderOption) error {
+	bcl.Lock()
+	defer bcl.Unlock()
+	c, err := readBackendConfigFile(file, opts...)
+	if err != nil {
+		return fmt.Errorf("cannot load config file: %w", err)
+	}
+
+	for _, cc := range c {
+		bcl.configs[cc.Name] = *cc
+	}
+	return nil
+}
+
+//////////
+
+// Load a config file for a model
+func (bcl *BackendConfigLoader) LoadBackendConfigFileByName(modelName string, modelPath string, opts ...ConfigLoaderOption) (*BackendConfig, error) {
+
+	// Load a config file if present after the model name
+	cfg := &BackendConfig{
+		PredictionOptions: schema.PredictionOptions{
+			Model: modelName,
+		},
+	}
+
+	cfgExisting, exists := bcl.GetBackendConfig(modelName)
+	if exists {
+		cfg = &cfgExisting
+	} else {
+		// Load a config file if present after the model name
+		modelConfig := filepath.Join(modelPath, modelName+".yaml")
+		if _, err := os.Stat(modelConfig); err == nil {
+			if err := bcl.LoadBackendConfig(modelConfig); err != nil {
+				return nil, fmt.Errorf("failed loading model config (%s) %s", modelConfig, err.Error())
+			}
+			cfgExisting, exists = bcl.GetBackendConfig(modelName)
+			if exists {
+				cfg = &cfgExisting
+			}
+		}
+	}
+
+	cfg.SetDefaults(opts...)
+	return cfg, nil
+}
+
+func readBackendConfigFile(file string, opts ...ConfigLoaderOption) ([]*BackendConfig, error) {
+	c := &[]*BackendConfig{}
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read config file: %w", err)
+	}
+	if err := yaml.Unmarshal(f, c); err != nil {
+		return nil, fmt.Errorf("cannot unmarshal config file: %w", err)
+	}
+
+	for _, cc := range *c {
+		cc.SetDefaults(opts...)
+	}
+
+	return *c, nil
+}
+
+func readBackendConfig(file string, opts ...ConfigLoaderOption) (*BackendConfig, error) {
+	c := &BackendConfig{}
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read config file: %w", err)
+	}
+	if err := yaml.Unmarshal(f, c); err != nil {
+		return nil, fmt.Errorf("cannot unmarshal config file: %w", err)
+	}
+
+	c.SetDefaults(opts...)
+	return c, nil
+}
+
+func (bcl *BackendConfigLoader) LoadBackendConfigForModelAndOpenAIRequest(modelFile string, input *schema.OpenAIRequest, appConfig *ApplicationConfig) (*BackendConfig, *schema.OpenAIRequest, error) {
+	cfg, err := bcl.LoadBackendConfigFileByName(modelFile, appConfig.ModelPath,
+		LoadOptionContextSize(appConfig.ContextSize),
+		LoadOptionDebug(appConfig.Debug),
+		LoadOptionF16(appConfig.F16),
+		LoadOptionThreads(appConfig.Threads),
+	)
+
+	// Set the parameters for the language model prediction
+	updateBackendConfigFromOpenAIRequest(cfg, input)
+
+	return cfg, input, err
+}
+
+func updateBackendConfigFromOpenAIRequest(bc *BackendConfig, request *schema.OpenAIRequest) {
+	if request.Echo {
+		bc.Echo = request.Echo
+	}
+	if request.TopK != nil && *request.TopK != 0 {
+		bc.TopK = request.TopK
+	}
+	if request.TopP != nil && *request.TopP != 0 {
+		bc.TopP = request.TopP
+	}
+
+	if request.Backend != "" {
+		bc.Backend = request.Backend
+	}
+
+	if request.ClipSkip != 0 {
+		bc.Diffusers.ClipSkip = request.ClipSkip
+	}
+
+	if request.ModelBaseName != "" {
+		bc.AutoGPTQ.ModelBaseName = request.ModelBaseName
+	}
+
+	if request.NegativePromptScale != 0 {
+		bc.NegativePromptScale = request.NegativePromptScale
+	}
+
+	if request.UseFastTokenizer {
+		bc.UseFastTokenizer = request.UseFastTokenizer
+	}
+
+	if request.NegativePrompt != "" {
+		bc.NegativePrompt = request.NegativePrompt
+	}
+
+	if request.RopeFreqBase != 0 {
+		bc.RopeFreqBase = request.RopeFreqBase
+	}
+
+	if request.RopeFreqScale != 0 {
+		bc.RopeFreqScale = request.RopeFreqScale
+	}
+
+	if request.Grammar != "" {
+		bc.Grammar = request.Grammar
+	}
+
+	if request.Temperature != nil && *request.Temperature != 0 {
+		bc.Temperature = request.Temperature
+	}
+
+	if request.Maxtokens != nil && *request.Maxtokens != 0 {
+		bc.Maxtokens = request.Maxtokens
+	}
+
+	switch stop := request.Stop.(type) {
+	case string:
+		if stop != "" {
+			bc.StopWords = append(bc.StopWords, stop)
+		}
+	case []interface{}:
+		for _, pp := range stop {
+			if s, ok := pp.(string); ok {
+				bc.StopWords = append(bc.StopWords, s)
+			}
+		}
+	}
+
+	if len(request.Tools) > 0 {
+		for _, tool := range request.Tools {
+			request.Functions = append(request.Functions, tool.Function)
+		}
+	}
+
+	if request.ToolsChoice != nil {
+		var toolChoice grammar.Tool
+		switch content := request.ToolsChoice.(type) {
+		case string:
+			_ = json.Unmarshal([]byte(content), &toolChoice)
+		case map[string]interface{}:
+			dat, _ := json.Marshal(content)
+			_ = json.Unmarshal(dat, &toolChoice)
+		}
+		request.FunctionCall = map[string]interface{}{
+			"name": toolChoice.Function.Name,
+		}
+	}
+
+	// Decode each request's message content
+	index := 0
+	for i, m := range request.Messages {
+		switch content := m.Content.(type) {
+		case string:
+			request.Messages[i].StringContent = content
+		case []interface{}:
+			dat, _ := json.Marshal(content)
+			c := []schema.Content{}
+			json.Unmarshal(dat, &c)
+			for _, pp := range c {
+				if pp.Type == "text" {
+					request.Messages[i].StringContent = pp.Text
+				} else if pp.Type == "image_url" {
+					// Detect if pp.ImageURL is an URL, if it is download the image and encode it in base64:
+					base64, err := utils.GetImageURLAsBase64(pp.ImageURL.URL)
+					if err == nil {
+						request.Messages[i].StringImages = append(request.Messages[i].StringImages, base64) // TODO: make sure that we only return base64 stuff
+						// set a placeholder for each image
+						request.Messages[i].StringContent = fmt.Sprintf("[img-%d]", index) + request.Messages[i].StringContent
+						index++
+					} else {
+						fmt.Print("Failed encoding image", err)
+					}
+				}
+			}
+		}
+	}
+
+	if request.RepeatPenalty != 0 {
+		bc.RepeatPenalty = request.RepeatPenalty
+	}
+
+	if request.FrequencyPenalty != 0 {
+		bc.FrequencyPenalty = request.FrequencyPenalty
+	}
+
+	if request.PresencePenalty != 0 {
+		bc.PresencePenalty = request.PresencePenalty
+	}
+
+	if request.Keep != 0 {
+		bc.Keep = request.Keep
+	}
+
+	if request.Batch != 0 {
+		bc.Batch = request.Batch
+	}
+
+	if request.IgnoreEOS {
+		bc.IgnoreEOS = request.IgnoreEOS
+	}
+
+	if request.Seed != nil {
+		bc.Seed = request.Seed
+	}
+
+	if request.TypicalP != nil {
+		bc.TypicalP = request.TypicalP
+	}
+
+	switch inputs := request.Input.(type) {
+	case string:
+		if inputs != "" {
+			bc.InputStrings = append(bc.InputStrings, inputs)
+		}
+	case []interface{}:
+		for _, pp := range inputs {
+			switch i := pp.(type) {
+			case string:
+				bc.InputStrings = append(bc.InputStrings, i)
+			case []interface{}:
+				tokens := []int{}
+				for _, ii := range i {
+					tokens = append(tokens, int(ii.(float64)))
+				}
+				bc.InputToken = append(bc.InputToken, tokens)
+			}
+		}
+	}
+
+	// Can be either a string or an object
+	switch fnc := request.FunctionCall.(type) {
+	case string:
+		if fnc != "" {
+			bc.SetFunctionCallString(fnc)
+		}
+	case map[string]interface{}:
+		var name string
+		n, exists := fnc["name"]
+		if exists {
+			nn, e := n.(string)
+			if e {
+				name = nn
+			}
+		}
+		bc.SetFunctionCallNameString(name)
+	}
+
+	switch p := request.Prompt.(type) {
+	case string:
+		bc.PromptStrings = append(bc.PromptStrings, p)
+	case []interface{}:
+		for _, pp := range p {
+			if s, ok := pp.(string); ok {
+				bc.PromptStrings = append(bc.PromptStrings, s)
+			}
+		}
+	}
 }
