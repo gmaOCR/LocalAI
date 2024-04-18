@@ -1,7 +1,7 @@
 package functions_test
 
 import (
-	. "github.com/mudler/LocalAI/pkg/functions"
+	. "github.com/go-skynet/LocalAI/pkg/functions"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -35,35 +35,13 @@ var _ = Describe("LocalAI grammar functions", func() {
 				},
 			}
 
-			js := functions.ToJSONStructure("function", "arguments")
+			js := functions.ToJSONStructure()
 			Expect(len(js.OneOf)).To(Equal(2))
-			fnName := js.OneOf[0].Properties["function"].(FunctionName)
-			fnArgs := js.OneOf[0].Properties["arguments"].(Argument)
-			Expect(fnName.Const).To(Equal("create_event"))
-			Expect(fnArgs.Properties["event_name"].(map[string]interface{})["type"]).To(Equal("string"))
-			Expect(fnArgs.Properties["event_date"].(map[string]interface{})["type"]).To(Equal("string"))
-
-			fnName = js.OneOf[1].Properties["function"].(FunctionName)
-			fnArgs = js.OneOf[1].Properties["arguments"].(Argument)
-			Expect(fnName.Const).To(Equal("search"))
-			Expect(fnArgs.Properties["query"].(map[string]interface{})["type"]).To(Equal("string"))
-
-			// Test with custom keys
-			jsN := functions.ToJSONStructure("name", "arguments")
-			Expect(len(jsN.OneOf)).To(Equal(2))
-
-			fnName = jsN.OneOf[0].Properties["name"].(FunctionName)
-			fnArgs = jsN.OneOf[0].Properties["arguments"].(Argument)
-
-			Expect(fnName.Const).To(Equal("create_event"))
-			Expect(fnArgs.Properties["event_name"].(map[string]interface{})["type"]).To(Equal("string"))
-			Expect(fnArgs.Properties["event_date"].(map[string]interface{})["type"]).To(Equal("string"))
-
-			fnName = jsN.OneOf[1].Properties["name"].(FunctionName)
-			fnArgs = jsN.OneOf[1].Properties["arguments"].(Argument)
-
-			Expect(fnName.Const).To(Equal("search"))
-			Expect(fnArgs.Properties["query"].(map[string]interface{})["type"]).To(Equal("string"))
+			Expect(js.OneOf[0].Properties.Function.Const).To(Equal("create_event"))
+			Expect(js.OneOf[0].Properties.Arguments.Properties["event_name"].(map[string]interface{})["type"]).To(Equal("string"))
+			Expect(js.OneOf[0].Properties.Arguments.Properties["event_date"].(map[string]interface{})["type"]).To(Equal("string"))
+			Expect(js.OneOf[1].Properties.Function.Const).To(Equal("search"))
+			Expect(js.OneOf[1].Properties.Arguments.Properties["query"].(map[string]interface{})["type"]).To(Equal("string"))
 		})
 	})
 	Context("Select()", func() {

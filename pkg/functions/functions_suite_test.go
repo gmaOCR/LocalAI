@@ -1,4 +1,4 @@
-package functions_test
+package functions
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestFunctions(t *testing.T) {
+func TestGrammar(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Functions test suite")
+	RunSpecs(t, "Grammar test suite")
 }
