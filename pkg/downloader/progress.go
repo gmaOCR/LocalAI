@@ -5,11 +5,8 @@ import "hash"
 type progressWriter struct {
 	fileName       string
 	total          int64
-<<<<<<< HEAD
 	fileNo         int
 	totalFiles     int
-=======
->>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 	written        int64
 	downloadStatus func(string, string, string, float64)
 	hash           hash.Hash
@@ -21,7 +18,6 @@ func (pw *progressWriter) Write(p []byte) (n int, err error) {
 
 	if pw.total > 0 {
 		percentage := float64(pw.written) / float64(pw.total) * 100
-<<<<<<< HEAD
 		if pw.totalFiles > 1 {
 			// This is a multi-file download
 			// so we need to adjust the percentage
@@ -33,8 +29,6 @@ func (pw *progressWriter) Write(p []byte) (n int, err error) {
 				percentage += float64(pw.fileNo-1) * 100 / float64(pw.totalFiles)
 			}
 		}
-=======
->>>>>>> fda6bf56 (feat: embedded model configurations, add popular model examples, refactoring (#1532))
 		//log.Debug().Msgf("Downloading %s: %s/%s (%.2f%%)", pw.fileName, formatBytes(pw.written), formatBytes(pw.total), percentage)
 		pw.downloadStatus(pw.fileName, formatBytes(pw.written), formatBytes(pw.total), percentage)
 	} else {
