@@ -1,37 +1,33 @@
----
 name: "hermes-2-pro-mistral"
+icon: https://cdn-uploads.huggingface.co/production/uploads/6317aade83d8d2fd903192d9/ggO2sBDJ8Bhc6w-zwTx5j.png
+license: apache-2.0
+
+description: |
+  Hermes 2 Pro is an upgraded, retrained version of Nous Hermes 2, consisting of an updated and cleaned version of the OpenHermes 2.5 Dataset, as well as a newly introduced Function Calling and JSON Mode dataset developed in-house.
+
+  This new version of Hermes maintains its excellent general task and conversation capabilities - but also excels at Function Calling, JSON Structured Outputs, and has improved on several other metrics as well, scoring a 90% on our function calling evaluation built in partnership with Fireworks.AI, and an 81% on our structured JSON Output evaluation.
+
+  Hermes Pro takes advantage of a special system prompt and multi-turn function calling structure with a new chatml role in order to make function calling reliable and easy to parse. Learn more about prompting below.
+
+  This work was a collaboration between Nous Research, @interstellarninja, and Fireworks.AI
+
+  Learn more about the function calling on our github repo here: https://github.com/NousResearch/Hermes-Function-Calling/tree/main
+
+urls:
+- https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF
+
+tags:
+- llm
+- gguf
+- gpu
+- cpu
 
 config_file: |
   mmap: true
-  context_size: 8192
-  stopwords:
-  - "<|im_end|>"
-  - "<dummy32000>"
-  - "<|eot_id|>"
-  - "<|end_of_text|>"
-  function:
-    disable_no_action: true
-    grammar:
-      # Uncomment the line below to enable grammar matching for JSON results if the model is breaking
-      # the output. This will make the model more accurate and won't break the JSON output.
-      # This however, will make parallel_calls not functional (it is a known bug)
-      # mixed_mode: true
-      disable: true
-      parallel_calls: true
-      expect_strings_after_json: true
-    json_regex_match:
-    - "(?s)<tool_call>(.*?)</tool_call>"
-    - "(?s)<tool_call>(.*)"
-    capture_llm_results:
-      - (?s)<scratchpad>(.*?)</scratchpad>
-    replace_llm_results:
-      - key: (?s)<scratchpad>(.*?)</scratchpad>
-        value: ""
+  parameters:
+    model: Hermes-2-Pro-Mistral-7B.Q6_K.gguf
 
   template:
-    chat: |
-      {{.Input -}}
-      <|im_start|>assistant
     chat_message: |
       <|im_start|>{{if eq .RoleName "assistant"}}assistant{{else if eq .RoleName "system"}}system{{else if eq .RoleName "tool"}}tool{{else if eq .RoleName "user"}}user{{end}}
       {{- if .FunctionCall }}
@@ -49,26 +45,37 @@ config_file: |
       </tool_call>
       {{- else if eq .RoleName "tool" }}
       </tool_response>
-      {{- end }}<|im_end|>
-    completion: |
-      {{.Input}}
+      {{- end }}
+      <|im_end|>
+    # https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF#prompt-format-for-function-calling
     function: |
       <|im_start|>system
-      You are a function calling AI model.
-      Here are the available tools:
+      You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools:
       <tools>
       {{range .Functions}}
       {'type': 'function', 'function': {'name': '{{.Name}}', 'description': '{{.Description}}', 'parameters': {{toJson .Parameters}} }}
       {{end}}
       </tools>
-      You should call the tools provided to you sequentially
-      Please use <scratchpad> XML tags to record your reasoning and planning before you call the functions as follows:
-      <scratchpad>
-      {step-by-step reasoning and plan in bullet points}
-      </scratchpad>
-      For each function call return a json object with function name and arguments within <tool_call> XML tags as follows:
+      Use the following pydantic model json schema for each tool call you will make:
+      {'title': 'FunctionCall', 'type': 'object', 'properties': {'arguments': {'title': 'Arguments', 'type': 'object'}, 'name': {'title': 'Name', 'type': 'string'}}, 'required': ['arguments', 'name']}
+      For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags as follows:
       <tool_call>
-      {"arguments": <args-dict>, "name": <function-name>}
-      </tool_call><|im_end|>
+      {'arguments': <args-dict>, 'name': <function-name>}
+      </tool_call>
+      <|im_end|>
       {{.Input -}}
       <|im_start|>assistant
+      <tool_call>
+    chat: |
+      {{.Input -}}
+      <|im_start|>assistant
+    completion: |
+      {{.Input}}
+  context_size: 4096
+  f16: true
+  stopwords:
+  - <|im_end|>
+  - <dummy32000>
+  - "\n</tool_call>"
+  - "\n\n\n"
+
