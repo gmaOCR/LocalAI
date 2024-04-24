@@ -2,11 +2,10 @@ package schema
 
 // RerankRequest defines the structure of the request payload
 type JINARerankRequest struct {
-	BasicModelRequest
+	Model     string   `json:"model"`
 	Query     string   `json:"query"`
 	Documents []string `json:"documents"`
 	TopN      int      `json:"top_n"`
-	Backend   string   `json:"backend"`
 }
 
 // DocumentResult represents a single document result
