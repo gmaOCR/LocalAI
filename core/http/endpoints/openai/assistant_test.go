@@ -3,16 +3,8 @@ package openai
 import (
 	"encoding/json"
 	"fmt"
-<<<<<<< HEAD
-	"io"
-=======
-	"github.com/go-skynet/LocalAI/core/config"
-	"github.com/go-skynet/LocalAI/pkg/model"
-	"github.com/gofiber/fiber/v2"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,15 +12,11 @@ import (
 	"strings"
 	"testing"
 	"time"
-<<<<<<< HEAD
 
+	"github.com/go-skynet/LocalAI/core/config"
+	"github.com/go-skynet/LocalAI/pkg/model"
 	"github.com/gofiber/fiber/v2"
-	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/schema"
-	"github.com/mudler/LocalAI/pkg/model"
 	"github.com/stretchr/testify/assert"
-=======
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 )
 
 var configsDir string = "/tmp/localai/configs"
@@ -39,11 +27,7 @@ type MockLoader struct {
 
 func tearDown() func() {
 	return func() {
-<<<<<<< HEAD
-		UploadedFiles = []schema.File{}
-=======
 		UploadedFiles = []File{}
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		Assistants = []Assistant{}
 		AssistantFiles = []AssistantFile{}
 		_ = os.Remove(filepath.Join(configsDir, AssistantsConfigFile))
@@ -56,11 +40,7 @@ func TestAssistantEndpoints(t *testing.T) {
 	cl := &config.BackendConfigLoader{}
 	//configsDir := "/tmp/localai/configs"
 	modelPath := "/tmp/localai/model"
-<<<<<<< HEAD
-	var ml = model.NewModelLoader(modelPath, false)
-=======
 	var ml = model.NewModelLoader(modelPath)
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 
 	appConfig := &config.ApplicationConfig{
 		ConfigsDir:    configsDir,
@@ -70,13 +50,8 @@ func TestAssistantEndpoints(t *testing.T) {
 	}
 
 	_ = os.RemoveAll(appConfig.ConfigsDir)
-<<<<<<< HEAD
 	_ = os.MkdirAll(appConfig.ConfigsDir, 0750)
 	_ = os.MkdirAll(modelPath, 0750)
-=======
-	_ = os.MkdirAll(appConfig.ConfigsDir, 0755)
-	_ = os.MkdirAll(modelPath, 0755)
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	os.Create(filepath.Join(modelPath, "ggml-gpt4all-j"))
 
 	app := fiber.New(fiber.Config{
@@ -208,11 +183,7 @@ func TestAssistantEndpoints(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, response.StatusCode)
 				if tt.expectedStatus != fiber.StatusOK {
-<<<<<<< HEAD
-					all, _ := io.ReadAll(response.Body)
-=======
 					all, _ := ioutil.ReadAll(response.Body)
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 					assert.Equal(t, tt.expectedStringResult, string(all))
 				} else {
 					var result []Assistant
@@ -308,10 +279,6 @@ func TestAssistantEndpoints(t *testing.T) {
 		assert.NoError(t, err)
 		var getAssistant Assistant
 		err = json.NewDecoder(modifyResponse.Body).Decode(&getAssistant)
-<<<<<<< HEAD
-		assert.NoError(t, err)
-=======
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 
 		t.Cleanup(cleanupAllAssistants(t, app, []string{getAssistant.ID}))
 
@@ -327,11 +294,7 @@ func TestAssistantEndpoints(t *testing.T) {
 		file, assistant, err := createFileAndAssistant(t, app, appConfig)
 		assert.NoError(t, err)
 
-<<<<<<< HEAD
-		afr := schema.AssistantFileRequest{FileID: file.ID}
-=======
 		afr := AssistantFileRequest{FileID: file.ID}
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		af, _, err := createAssistantFile(app, afr, assistant.ID)
 
 		assert.NoError(t, err)
@@ -342,11 +305,7 @@ func TestAssistantEndpoints(t *testing.T) {
 		file, assistant, err := createFileAndAssistant(t, app, appConfig)
 		assert.NoError(t, err)
 
-<<<<<<< HEAD
-		afr := schema.AssistantFileRequest{FileID: file.ID}
-=======
 		afr := AssistantFileRequest{FileID: file.ID}
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		af, _, err := createAssistantFile(app, afr, assistant.ID)
 		assert.NoError(t, err)
 
@@ -357,11 +316,7 @@ func TestAssistantEndpoints(t *testing.T) {
 		file, assistant, err := createFileAndAssistant(t, app, appConfig)
 		assert.NoError(t, err)
 
-<<<<<<< HEAD
-		afr := schema.AssistantFileRequest{FileID: file.ID}
-=======
 		afr := AssistantFileRequest{FileID: file.ID}
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		af, _, err := createAssistantFile(app, afr, assistant.ID)
 		assert.NoError(t, err)
 		t.Cleanup(cleanupAssistantFile(t, app, af.ID, af.AssistantID))
@@ -383,11 +338,7 @@ func TestAssistantEndpoints(t *testing.T) {
 		file, assistant, err := createFileAndAssistant(t, app, appConfig)
 		assert.NoError(t, err)
 
-<<<<<<< HEAD
-		afr := schema.AssistantFileRequest{FileID: file.ID}
-=======
 		afr := AssistantFileRequest{FileID: file.ID}
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		af, _, err := createAssistantFile(app, afr, assistant.ID)
 		assert.NoError(t, err)
 
@@ -398,11 +349,7 @@ func TestAssistantEndpoints(t *testing.T) {
 
 }
 
-<<<<<<< HEAD
-func createFileAndAssistant(t *testing.T, app *fiber.App, o *config.ApplicationConfig) (schema.File, Assistant, error) {
-=======
 func createFileAndAssistant(t *testing.T, app *fiber.App, o *config.ApplicationConfig) (File, Assistant, error) {
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	ar := &AssistantRequest{
 		Model:        "ggml-gpt4all-j",
 		Name:         "3.5-turbo",
@@ -415,11 +362,7 @@ func createFileAndAssistant(t *testing.T, app *fiber.App, o *config.ApplicationC
 
 	assistant, _, err := createAssistant(app, *ar)
 	if err != nil {
-<<<<<<< HEAD
-		return schema.File{}, Assistant{}, err
-=======
 		return File{}, Assistant{}, err
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	}
 	t.Cleanup(cleanupAllAssistants(t, app, []string{assistant.ID}))
 
@@ -431,11 +374,7 @@ func createFileAndAssistant(t *testing.T, app *fiber.App, o *config.ApplicationC
 	return file, assistant, nil
 }
 
-<<<<<<< HEAD
-func createAssistantFile(app *fiber.App, afr schema.AssistantFileRequest, assistantId string) (AssistantFile, *http.Response, error) {
-=======
 func createAssistantFile(app *fiber.App, afr AssistantFileRequest, assistantId string) (AssistantFile, *http.Response, error) {
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	afrJson, err := json.Marshal(afr)
 	if err != nil {
 		return AssistantFile{}, nil, err
@@ -452,14 +391,7 @@ func createAssistantFile(app *fiber.App, afr AssistantFileRequest, assistantId s
 	}
 
 	var assistantFile AssistantFile
-<<<<<<< HEAD
-	all, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return AssistantFile{}, resp, err
-	}
-=======
 	all, err := ioutil.ReadAll(resp.Body)
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 	err = json.NewDecoder(strings.NewReader(string(all))).Decode(&assistantFile)
 	if err != nil {
 		return AssistantFile{}, resp, err
@@ -490,12 +422,8 @@ func createAssistant(app *fiber.App, ar AssistantRequest) (Assistant, *http.Resp
 
 	var resultAssistant Assistant
 	err = json.NewDecoder(strings.NewReader(string(bodyString))).Decode(&resultAssistant)
-<<<<<<< HEAD
-	return resultAssistant, resp, err
-=======
 
 	return resultAssistant, resp, nil
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 }
 
 func cleanupAllAssistants(t *testing.T, app *fiber.App, ids []string) func() {
@@ -521,11 +449,7 @@ func cleanupAssistantFile(t *testing.T, app *fiber.App, fileId, assistantId stri
 		resp, err := app.Test(request)
 		assert.NoError(t, err)
 
-<<<<<<< HEAD
-		var dafr schema.DeleteAssistantFileResponse
-=======
 		var dafr DeleteAssistantFileResponse
->>>>>>> 233951ba (feat(assistant): Assistant and AssistantFiles api (#1803))
 		err = json.NewDecoder(resp.Body).Decode(&dafr)
 		assert.NoError(t, err)
 		assert.True(t, dafr.Deleted)
