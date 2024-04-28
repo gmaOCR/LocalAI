@@ -1,7 +1,11 @@
 
 +++
 disableToc = false
+<<<<<<< HEAD
 title = "📈 Reranker"
+=======
+title = " Reranker"
+>>>>>>> 09b3ff66 (docs: update gallery, add rerankers (#2166))
 weight = 11
 url = "/features/reranker/"
 +++
