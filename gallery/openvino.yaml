@@ -7,3 +7,6 @@ config_file: |
   type: OVModelForCausalLM
   template:
     use_tokenizer_template: true
+  stopwords:
+  - "<|eot_id|>"
+  - "<|end_of_text|>"
