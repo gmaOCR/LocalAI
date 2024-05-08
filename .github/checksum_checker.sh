@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 # This scripts needs yq and huggingface_hub to be installed
 # to install hugingface_hub run pip install huggingface_hub
 
@@ -14,33 +15,66 @@ function check_and_update_checksum() {
     idx="$5"
 
     # Download the file and calculate new checksum using Python
-    new_checksum=$(python3 ./.github/check_and_update.py $uri)
-    result=$?
+    new_checksum=$(python3 -c "
+import hashlib
+from huggingface_hub import hf_hub_download
+import requests
+import sys
+import os
 
-    if [[ $result -eq 5 ]]; then
-        echo "Contaminated entry detected, deleting entry for $model_name..."
-        yq eval -i "del([$idx])" "$input_yaml"
-        return
-    fi
+uri = '$uri'
+file_name = '$file_name'
 
-    if [[ "$new_checksum" == "" ]]; then
-        echo "Error calculating checksum for $file_name. Skipping..."
-        return
-    fi
+# Function to parse the URI and determine download method
+# Function to parse the URI and determine download method
+def parse_uri(uri):
+    if uri.startswith('huggingface://'):
+        # Remove the protocol and extract repo id and filename
+        repo_id = uri.split('://')[1]
+        return 'huggingface', repo_id.rsplit('/', 1)[0]
+    elif 'huggingface.co' in uri:
+        # For full URLs to Hugging Face, extract repo and filename before '/resolve/'
+        parts = uri.split('/resolve/')
+        if len(parts) > 1:
+            repo_path = parts[0].split('https://huggingface.co/')[-1]
+            repo_id, file_part = repo_path.rsplit('/', 1)
+            return 'huggingface', (repo_id, file_part)
+    return 'direct', uri
 
-    echo "Checksum for $file_name: $new_checksum"
+
+def calculate_sha256(file_path):
+    sha256_hash = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for byte_block in iter(lambda: f.read(4096), b''):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+download_type, repo_id_or_url = parse_uri(uri)
+
+# Decide download method based on URI type
+if download_type == 'huggingface':
+    file_path = hf_hub_download(repo_id=repo_id_or_url, filename=file_name, use_auth_token=False)
+else:
+    # Direct download for non-Hugging Face URLs
+    response = requests.get(repo_id_or_url)
+    if response.status_code == 200:
+        with open(file_name, 'wb') as f:
+            f.write(response.content)
+        file_path = file_name
+    else:
+        print(f'Error downloading file: {response.status_code}', file=sys.stderr)
+        sys.exit(1)
+
+print(calculate_sha256(file_path))
+# Clean up the downloaded file
+os.remove(file_path)
+")
 
     # Compare and update the YAML file if checksums do not match
-    
-    if [[ $result -eq 2 ]]; then
-        echo "File not found, deleting entry for $file_name..."
-        # yq eval -i "del(.[$idx].files[] | select(.filename == \"$file_name\"))" "$input_yaml"
-    elif [[ "$old_checksum" != "$new_checksum" ]]; then
+    if [[ "$old_checksum" != "$new_checksum" ]]; then
         echo "Checksum mismatch for $file_name. Updating..."
         yq eval -i "del(.[$idx].files[] | select(.filename == \"$file_name\").sha256)" "$input_yaml"
         yq eval -i "(.[$idx].files[] | select(.filename == \"$file_name\")).sha256 = \"$new_checksum\"" "$input_yaml"
-    elif [[ $result -ne 0 ]]; then
-        echo "Error downloading file $file_name. Skipping..."
     else
         echo "Checksum match for $file_name. No update needed."
     fi
