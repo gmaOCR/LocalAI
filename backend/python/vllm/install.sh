@@ -1,38 +1,34 @@
 #!/bin/bash
-set -e
+set -ex
 
-EXTRA_PIP_INSTALL_FLAGS="--no-build-isolation"
+BUILD_ISOLATION_FLAG=""
 
-backend_dir=$(dirname $0)
+MY_DIR="$(dirname -- "${BASH_SOURCE[0]}")"
 
-if [ -d $backend_dir/common ]; then
-    source $backend_dir/common/libbackend.sh
-else
-    source $backend_dir/../common/libbackend.sh
+uv venv ${MY_DIR}/venv
+source ${MY_DIR}/venv/bin/activate
+
+if [ -f "requirements-install.txt" ]; then
+    # If we have a requirements-install.txt, it means that a package does not properly declare it's build time
+    # dependencies per PEP-517, so we have to set up the proper build environment ourselves, and then install
+    # the package without build isolation
+    BUILD_ISOLATION_FLAG="--no-build-isolation"
+    uv pip install --requirement ${MY_DIR}/requirements-install.txt
+fi
+uv pip install ${BUILD_ISOLATION_FLAG} --requirement ${MY_DIR}/requirements.txt
+
+if [ -f "requirements-${BUILD_TYPE}.txt" ]; then
+    uv pip install ${BUILD_ISOLATION_FLAG}  --requirement ${MY_DIR}/requirements-${BUILD_TYPE}.txt
 fi
 
-# This is here because the Intel pip index is broken and returns 200 status codes for every package name, it just doesn't return any package links.
-# This makes uv think that the package exists in the Intel pip index, and by default it stops looking at other pip indexes once it finds a match.
-# We need uv to continue falling through to the pypi default index to find optimum[openvino] in the pypi index
-# the --upgrade actually allows us to *downgrade* torch to the version provided in the Intel pip index
-if [ "x${BUILD_PROFILE}" == "xintel" ]; then
-    EXTRA_PIP_INSTALL_FLAGS+=" --upgrade --index-strategy=unsafe-first-match"
+if [ -d "/opt/intel" ]; then
+    # Intel GPU: If the directory exists, we assume we are using the Intel image
+    # https://github.com/intel/intel-extension-for-pytorch/issues/538
+    if [ -f "requirements-intel.txt" ]; then
+        uv pip install ${BUILD_ISOLATION_FLAG}  --index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/us/ --requirement ${MY_DIR}/requirements-intel.txt
+    fi
 fi
 
-# We don't embed this into the images as it is a large dependency and not always needed.
-# Besides, the speed inference are not actually usable in the current state for production use-cases.
-if [ "x${BUILD_TYPE}" == "x" ] && [ "x${FROM_SOURCE}" == "xtrue" ]; then
-        ensureVenv
-        # https://docs.vllm.ai/en/v0.6.1/getting_started/cpu-installation.html
-        if [ ! -d vllm ]; then
-            git clone https://github.com/vllm-project/vllm
-        fi
-        pushd vllm
-            uv pip install wheel packaging ninja "setuptools>=49.4.0" numpy typing-extensions pillow setuptools-scm grpcio==1.68.1 protobuf bitsandbytes
-            uv pip install -v -r requirements-cpu.txt --extra-index-url https://download.pytorch.org/whl/cpu
-            VLLM_TARGET_DEVICE=cpu python setup.py install
-        popd
-        rm -rf vllm
-    else
-        installRequirements
+if [ "$PIP_CACHE_PURGE" = true ] ; then
+    pip cache purge
 fi
