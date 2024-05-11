@@ -66,32 +66,13 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
 
     def TTS(self, request, context):
         try:
-            # if model is multilingual add language from request or env as fallback
-            lang = request.language or COQUI_LANGUAGE
-            if lang == "":
-                lang = None
-            if self.tts.is_multi_lingual and lang is None:
-               return backend_pb2.Result(success=False, message=f"Model is multi-lingual, but no language was provided")
-
-            # if model is multi-speaker, use speaker_wav or the speaker_id from request.voice
-            if self.tts.is_multi_speaker and self.AudioPath is None and request.voice is None:
-                return backend_pb2.Result(success=False, message=f"Model is multi-speaker, but no speaker was provided")
-
-            if self.tts.is_multi_speaker and request.voice is not None:
-               self.tts.tts_to_file(text=request.text, speaker=request.voice, language=lang, file_path=request.dst)
-            else:
-                self.tts.tts_to_file(text=request.text, speaker_wav=self.AudioPath, language=lang, file_path=request.dst)
+            self.tts.tts_to_file(text=request.text, speaker_wav=self.AudioPath, language=COQUI_LANGUAGE, file_path=request.dst)
         except Exception as err:
             return backend_pb2.Result(success=False, message=f"Unexpected {err=}, {type(err)=}")
         return backend_pb2.Result(success=True)
 
 def serve(address):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS),
-        options=[
-            ('grpc.max_message_length', 50 * 1024 * 1024),  # 50MB
-            ('grpc.max_send_message_length', 50 * 1024 * 1024),  # 50MB
-            ('grpc.max_receive_message_length', 50 * 1024 * 1024),  # 50MB
-        ])
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS))
     backend_pb2_grpc.add_BackendServicer_to_server(BackendServicer(), server)
     server.add_insecure_port(address)
     server.start()

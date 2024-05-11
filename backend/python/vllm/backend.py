@@ -5,8 +5,6 @@ import argparse
 import signal
 import sys
 import os
-from typing import List
-from PIL import Image
 
 import backend_pb2
 import backend_pb2_grpc
@@ -17,10 +15,6 @@ from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.sampling_params import SamplingParams
 from vllm.utils import random_uuid
 from vllm.transformers_utils.tokenizer import get_tokenizer
-from vllm.multimodal.utils import fetch_image
-from vllm.assets.video import VideoAsset
-import base64
-import io
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
@@ -95,8 +89,6 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
 
         if request.Quantization != "":
             engine_args.quantization = request.Quantization
-        if request.LoadFormat != "":
-            engine_args.load_format = request.LoadFormat
         if request.GPUMemoryUtilization != 0:
             engine_args.gpu_memory_utilization = request.GPUMemoryUtilization
         if request.TrustRemoteCode:
@@ -109,22 +101,10 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             engine_args.swap_space = request.SwapSpace
         if request.MaxModelLen != 0:
             engine_args.max_model_len = request.MaxModelLen
-        if request.DisableLogStatus:
-            engine_args.disable_log_status = request.DisableLogStatus
-        if request.DType != "":
-            engine_args.dtype = request.DType
-        if request.LimitImagePerPrompt != 0 or request.LimitVideoPerPrompt != 0 or request.LimitAudioPerPrompt != 0:
-            # limit-mm-per-prompt defaults to 1 per modality, based on vLLM docs
-            engine_args.limit_mm_per_prompt = {
-                "image": max(request.LimitImagePerPrompt, 1),
-                "video": max(request.LimitVideoPerPrompt, 1),
-                "audio": max(request.LimitAudioPerPrompt, 1)
-            }
 
         try:
             self.llm = AsyncLLMEngine.from_engine_args(engine_args)
         except Exception as err:
-            print(f"Unexpected {err=}, {type(err)=}", file=sys.stderr)
             return backend_pb2.Result(success=False, message=f"Unexpected {err=}, {type(err)=}")
 
         try:
@@ -137,7 +117,7 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
            )
         except Exception as err:
             return backend_pb2.Result(success=False, message=f"Unexpected {err=}, {type(err)=}")
-        print("Model loaded successfully", file=sys.stderr)
+
         return backend_pb2.Result(message="Model loaded successfully", success=True)
 
     async def Predict(self, request, context):
@@ -154,26 +134,6 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
         gen = self._predict(request, context, streaming=False)
         res = await gen.__anext__()
         return res
-
-    def Embedding(self, request, context):
-        """
-        A gRPC method that calculates embeddings for a given sentence.
-
-        Args:
-            request: An EmbeddingRequest object that contains the request parameters.
-            context: A grpc.ServicerContext object that provides information about the RPC.
-
-        Returns:
-            An EmbeddingResult object that contains the calculated embeddings.
-        """
-        print("Calculated embeddings for: " + request.Embeddings, file=sys.stderr)
-        outputs = self.model.encode(request.Embeddings)
-        # Check if we have one result at least
-        if len(outputs) == 0:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("No embeddings were calculated.")
-            return backend_pb2.EmbeddingResult()
-        return backend_pb2.EmbeddingResult(embeddings=outputs[0].outputs.embedding)
 
     async def PredictStream(self, request, context):
         """
@@ -194,70 +154,37 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             await iterations.aclose()
 
     async def _predict(self, request, context, streaming=False):
-        # Build the sampling parameters
-        # NOTE: this must stay in sync with the vllm backend
-        request_to_sampling_params = {
-            "N": "n",
-            "PresencePenalty": "presence_penalty",
-            "FrequencyPenalty": "frequency_penalty",
-            "RepetitionPenalty": "repetition_penalty",
-            "Temperature": "temperature",
-            "TopP": "top_p",
-            "TopK": "top_k",
-            "MinP": "min_p",
-            "Seed": "seed",
-            "StopPrompts": "stop",
-            "StopTokenIds": "stop_token_ids",
-            "BadWords": "bad_words",
-            "IncludeStopStrInOutput": "include_stop_str_in_output",
-            "IgnoreEOS": "ignore_eos",
-            "Tokens": "max_tokens",
-            "MinTokens": "min_tokens",
-            "Logprobs": "logprobs",
-            "PromptLogprobs": "prompt_logprobs",
-            "SkipSpecialTokens": "skip_special_tokens",
-            "SpacesBetweenSpecialTokens": "spaces_between_special_tokens",
-            "TruncatePromptTokens": "truncate_prompt_tokens",
-            "GuidedDecoding": "guided_decoding",
-        }
 
+        # Build sampling parameters
         sampling_params = SamplingParams(top_p=0.9, max_tokens=200)
+        if request.TopP != 0:
+            sampling_params.top_p = request.TopP
+        if request.Tokens > 0:
+            sampling_params.max_tokens = request.Tokens
+        if request.Temperature != 0:
+            sampling_params.temperature = request.Temperature
+        if request.TopK != 0:
+            sampling_params.top_k = request.TopK
+        if request.PresencePenalty != 0:
+            sampling_params.presence_penalty = request.PresencePenalty
+        if request.FrequencyPenalty != 0:
+            sampling_params.frequency_penalty = request.FrequencyPenalty
+        if request.StopPrompts:
+            sampling_params.stop = request.StopPrompts
+        if request.IgnoreEOS:
+            sampling_params.ignore_eos = request.IgnoreEOS
+        if request.Seed != 0:
+            sampling_params.seed = request.Seed
 
-        for request_field, param_field in request_to_sampling_params.items():
-            if hasattr(request, request_field):
-                value = getattr(request, request_field)
-                if value not in (None, 0, [], False):
-                    setattr(sampling_params, param_field, value)
-
-        # Extract image paths and process images
         prompt = request.Prompt
-
-        image_paths = request.Images
-        image_data = [self.load_image(img_path) for img_path in image_paths]
-
-        videos_path = request.Videos
-        video_data = [self.load_video(video_path) for video_path in videos_path]
-
-        # If tokenizer template is enabled and messages are provided instead of prompt, apply the tokenizer template
+        
+        # If tokenizer template is enabled and messages are provided instead of prompt apply the tokenizer template
         if not request.Prompt and request.UseTokenizerTemplate and request.Messages:
             prompt = self.tokenizer.apply_chat_template(request.Messages, tokenize=False, add_generation_prompt=True)
 
-        # Generate text using the LLM engine
+        # Generate text
         request_id = random_uuid()
-        print(f"Generating text with request_id: {request_id}", file=sys.stderr)
-        multi_modal_data = {}
-        if image_data:
-            multi_modal_data["image"] = image_data
-        if video_data:
-            multi_modal_data["video"] = video_data
-        outputs = self.llm.generate(
-            {
-            "prompt": prompt,
-            "multi_modal_data": multi_modal_data if multi_modal_data else None,
-            },
-            sampling_params=sampling_params,
-            request_id=request_id,
-        )
+        outputs = self.llm.generate(prompt, sampling_params, request_id)
 
         # Stream the results
         generated_text = ""
@@ -280,65 +207,12 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
         if streaming:
             return
 
-        # Remove the image files from /tmp folder
-        for img_path in image_paths:
-            try:
-                os.remove(img_path)
-            except Exception as e:
-                print(f"Error removing image file: {img_path}, {e}", file=sys.stderr)
-
         # Sending the final generated text
         yield backend_pb2.Reply(message=bytes(generated_text, encoding='utf-8'))
 
-    def load_image(self, image_path: str):
-        """
-        Load an image from the given file path or base64 encoded data.
-
-        Args:
-            image_path (str): The path to the image file or base64 encoded data.
-
-        Returns:
-            Image: The loaded image.
-        """
-        try:
-
-            image_data = base64.b64decode(image_path)
-            image = Image.open(io.BytesIO(image_data))
-            return image
-        except Exception as e:
-            print(f"Error loading image {image_path}: {e}", file=sys.stderr)
-            return None
-
-    def load_video(self, video_path: str):
-        """
-        Load a video from the given file path.
-
-        Args:
-            video_path (str): The path to the image file.
-
-        Returns:
-            Video: The loaded video.
-        """
-        try:
-            timestamp = str(int(time.time() * 1000))  # Generate timestamp
-            p = f"/tmp/vl-{timestamp}.data"  # Use timestamp in filename
-            with open(p, "wb") as f:
-                f.write(base64.b64decode(video_path))
-            video = VideoAsset(name=p).np_ndarrays
-            os.remove(p)
-            return video
-        except Exception as e:
-            print(f"Error loading video {video_path}: {e}", file=sys.stderr)
-            return None
-
 async def serve(address):
     # Start asyncio gRPC server
-    server = grpc.aio.server(migration_thread_pool=futures.ThreadPoolExecutor(max_workers=MAX_WORKERS),
-        options=[
-            ('grpc.max_message_length', 50 * 1024 * 1024),  # 50MB
-            ('grpc.max_send_message_length', 50 * 1024 * 1024),  # 50MB
-            ('grpc.max_receive_message_length', 50 * 1024 * 1024),  # 50MB
-        ])
+    server = grpc.aio.server(migration_thread_pool=futures.ThreadPoolExecutor(max_workers=MAX_WORKERS))
     # Add the servicer to the server
     backend_pb2_grpc.add_BackendServicer_to_server(BackendServicer(), server)
     # Bind the server to the address

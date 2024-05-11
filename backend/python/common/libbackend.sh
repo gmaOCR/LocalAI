@@ -17,26 +17,10 @@
 # LIMIT_TARGETS="cublas12"
 # source $(dirname $0)/../common/libbackend.sh
 #
-
-PYTHON_VERSION="3.10"
-
 function init() {
-    # Name of the backend (directory name)
     BACKEND_NAME=${PWD##*/}
-
-    # Path where all backends files are
     MY_DIR=$(realpath `dirname $0`)
-
-    # Build type
     BUILD_PROFILE=$(getBuildProfile)
-
-    # Environment directory
-    EDIR=${MY_DIR}
-
-    # Allow to specify a custom env dir for shared environments
-    if [ "x${ENV_DIR}" != "x" ]; then
-        EDIR=${ENV_DIR}
-    fi
 
     # If a backend has defined a list of valid build profiles...
     if [ ! -z "${LIMIT_TARGETS}" ]; then
@@ -90,14 +74,13 @@ function getBuildProfile() {
 # This function is idempotent, so you can call it as many times as you want and it will
 # always result in an activated virtual environment
 function ensureVenv() {
-    if [ ! -d "${EDIR}/venv" ]; then
-        uv venv --python ${PYTHON_VERSION} ${EDIR}/venv
+    if [ ! -d "${MY_DIR}/venv" ]; then
+        uv venv ${MY_DIR}/venv
         echo "virtualenv created"
     fi
-
-    # Source if we are not already in a Virtual env
-    if [ "x${VIRTUAL_ENV}" != "x${EDIR}/venv" ]; then
-        source ${EDIR}/venv/bin/activate
+    
+    if [ "x${VIRTUAL_ENV}" != "x${MY_DIR}/venv" ]; then
+        source ${MY_DIR}/venv/bin/activate
         echo "virtualenv activated"
     fi
 
@@ -130,24 +113,13 @@ function installRequirements() {
 
     # These are the requirements files we will attempt to install, in order
     declare -a requirementFiles=(
-        "${EDIR}/requirements-install.txt"
-        "${EDIR}/requirements.txt"
-        "${EDIR}/requirements-${BUILD_TYPE}.txt"
+        "${MY_DIR}/requirements-install.txt"
+        "${MY_DIR}/requirements.txt"
+        "${MY_DIR}/requirements-${BUILD_TYPE}.txt"
     )
 
     if [ "x${BUILD_TYPE}" != "x${BUILD_PROFILE}" ]; then
-        requirementFiles+=("${EDIR}/requirements-${BUILD_PROFILE}.txt")
-    fi
-
-    # if BUILD_TYPE is empty, we are a CPU build, so we should try to install the CPU requirements
-    if [ "x${BUILD_TYPE}" == "x" ]; then
-        requirementFiles+=("${EDIR}/requirements-cpu.txt")
-    fi
-
-    requirementFiles+=("${EDIR}/requirements-after.txt")
-
-    if [ "x${BUILD_TYPE}" != "x${BUILD_PROFILE}" ]; then
-        requirementFiles+=("${EDIR}/requirements-${BUILD_PROFILE}-after.txt")
+        requirementFiles+=("${MY_DIR}/requirements-${BUILD_PROFILE}.txt")
     fi
 
     for reqFile in ${requirementFiles[@]}; do
@@ -176,13 +148,13 @@ function startBackend() {
     ensureVenv
 
     if [ ! -z ${BACKEND_FILE} ]; then
-        exec ${EDIR}/venv/bin/python ${BACKEND_FILE} $@
+        python ${BACKEND_FILE} $@
     elif [ -e "${MY_DIR}/server.py" ]; then
-        exec ${EDIR}/venv/bin/python ${MY_DIR}/server.py $@
+        python ${MY_DIR}/server.py $@
     elif [ -e "${MY_DIR}/backend.py" ]; then
-        exec ${EDIR}/venv/bin/python ${MY_DIR}/backend.py $@
+        python ${MY_DIR}/backend.py $@
     elif [ -e "${MY_DIR}/${BACKEND_NAME}.py" ]; then
-        exec ${EDIR}/venv/bin/python ${MY_DIR}/${BACKEND_NAME}.py $@
+        python ${MY_DIR}/${BACKEND_NAME}.py $@
     fi
 }
 
