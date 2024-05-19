@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mudler/LocalAI/pkg/downloader"
-	"github.com/mudler/LocalAI/pkg/utils"
+	"github.com/go-skynet/LocalAI/pkg/downloader"
+	"github.com/go-skynet/LocalAI/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,8 +37,7 @@ func main() {
 
 	// download the assets
 	for _, asset := range assets {
-		uri := downloader.URI(asset.URL)
-		if err := uri.DownloadFile(filepath.Join(destPath, asset.FileName), asset.SHA, 1, 1, utils.DisplayDownloadFunction); err != nil {
+		if err := downloader.DownloadFile(asset.URL, filepath.Join(destPath, asset.FileName), asset.SHA, 1, 1, utils.DisplayDownloadFunction); err != nil {
 			panic(err)
 		}
 	}
