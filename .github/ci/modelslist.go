@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/microcosm-cc/bluemonday"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,8 +17,6 @@ var modelPageTemplate string = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LocalAI models</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.min.js"></script>
-
     <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/styles/default.min.css"
@@ -76,7 +73,7 @@ var modelPageTemplate string = `
     <div class="container mx-auto px-4 py-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
-                <a href="/" class="text-white text-xl font-bold"><img src="https://github.com/mudler/LocalAI/assets/2420543/0966aa2a-166e-4f99-a3e5-6c915fc997dd" alt="LocalAI Logo" class="h-10 mr-3 border-2 border-gray-300 shadow rounded"></a>
+                <a href="/" class="text-white text-xl font-bold"><img src="https://github.com/go-skynet/LocalAI/assets/2420543/0966aa2a-166e-4f99-a3e5-6c915fc997dd" alt="LocalAI Logo" class="h-10 mr-3 border-2 border-gray-300 shadow rounded"></a>
                 <a href="/" class="text-white text-xl font-bold">LocalAI</a>
             </div>
             <!-- Menu button for small screens -->
@@ -93,9 +90,9 @@ var modelPageTemplate string = `
         <!-- Collapsible menu for small screens -->
         <div class="hidden lg:hidden" id="mobile-menu">
             <div class="pt-4 pb-3 border-t border-gray-700">
-
+                
                 <a href="https://localai.io" class="block text-gray-400 hover:text-white px-3 py-2 rounded mt-1" target="_blank" ><i class="fas fa-book-reader pr-2"></i> Documentation</a>
-
+               
             </div>
         </div>
     </div>
@@ -115,17 +112,17 @@ var modelPageTemplate string = `
 
 	<h2 class="text-center text-3xl font-semibold text-gray-100">
 
-	 🖼️ Available {{.AvailableModels}} models</i> <a href="https://localai.io/models/" target="_blank" >
+	 🖼️ Available {{.AvailableModels}} models</i> repositories     <a href="https://localai.io/models/" target="_blank" >
 			<i class="fas fa-circle-info pr-2"></i>
-		</a></h2>
+		</a></h2> 
 
-	<h3>
-	Refer to the Model gallery <a href="https://localai.io/models/" target="_blank" ><i class="fas fa-circle-info pr-2"></i></a> for more information on how to use the models with LocalAI.<br>
+	<h3>	  
+	Refer to <a href="https://localai.io/models" target=_blank> Model gallery</a> for more information on how to use the models with LocalAI.
 
 	You can install models with the CLI command <code>local-ai models install <model-name></code>. or by using the WebUI.
 	</h3>
-
-	<input class="form-control appearance-none block w-full mt-5 px-3 py-2 text-base font-normal text-gray-300 pb-2 mb-5 bg-gray-800 bg-clip-padding border border-solid border-gray-600 rounded transition ease-in-out m-0 focus:text-gray-300 focus:bg-gray-900 focus:border-blue-500 focus:outline-none" type="search"
+  
+	<input class="form-control appearance-none block w-full mt-5 px-3 py-2 text-base font-normal text-gray-300 pb-2 mb-5 bg-gray-800 bg-clip-padding border border-solid border-gray-600 rounded transition ease-in-out m-0 focus:text-gray-300 focus:bg-gray-900 focus:border-blue-500 focus:outline-none" type="search" 
 	id="searchbox" placeholder="Live search keyword..">
 	  <div class="dark grid grid-cols-1 grid-rows-1 md:grid-cols-3 block rounded-lg shadow-secondary-1 dark:bg-surface-dark">
 		{{ range $_, $model := .Models }}
@@ -136,14 +133,14 @@ var modelPageTemplate string = `
 	  		{{ $icon = $model.Icon }}
 	  		{{ end }}
 			<div class="flex justify-center items-center">
-				<img data-src="{{ $icon }}" alt="{{$model.Name}}" class="rounded-t-lg max-h-48 max-w-96 object-cover mt-3 lazy">
+				<img  src="{{ $icon }}" alt="{{$model.Name}}" class="rounded-t-lg max-h-48 max-w-96 object-cover mt-3">
 			</div>
 	  		<div class="p-6 text-surface dark:text-white">
 				<h5 class="mb-2 text-xl font-medium leading-tight">{{$model.Name}}</h5>
-
-
+				
+				   
 				<p class="mb-4 text-base truncate">{{ $model.Description }}</p>
-
+		
 			</div>
 			<div class="px-6 pt-4 pb-2">
 
@@ -172,14 +169,14 @@ var modelPageTemplate string = `
                 <!-- Modal body -->
                 <div class="p-4 md:p-5 space-y-4">
                     <div class="flex justify-center items-center">
-                    <img data-src="{{ $icon }}" alt="{{$model.Name}}" class="lazy rounded-t-lg max-h-48 max-w-96 object-cover mt-3">
+                    <img  src="{{ $icon }}" alt="{{$model.Name}}" class="rounded-t-lg max-h-48 max-w-96 object-cover mt-3">
                   </div>
 
                     <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
                     {{ $model.Description }}
 
                     </p>
-
+                    
                     <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
                     To install the model with the CLI, run: <br>
                     <code> local-ai models install {{$model.Name}} </code> <br>
@@ -194,7 +191,7 @@ var modelPageTemplate string = `
                     <ul>
                     {{ range $_, $u := $model.URLs }}
                     <li><a href="{{ $u }}" target=_blank><i class="fa-solid fa-link"></i> {{ $u }}</a></li>
-                    {{ end }}
+                    {{ end }}  
                     </ul>
                     </p>
                 </div>
@@ -210,22 +207,18 @@ var modelPageTemplate string = `
 			</div>
 		</div>
 		</div>
-		{{ end }}
+		{{ end }}      
 
 		</div>
   </div>
 </div>
 
 <script>
-var lazyLoadInstance = new LazyLoad({
-  // Your custom settings go here
-});
-
 let cards = document.querySelectorAll('.box')
-
+    
 function liveSearch() {
     let search_query = document.getElementById("searchbox").value;
-
+    
     //Use innerText if all contents are visible
     //Use textContent for including hidden elements
     for (var i = 0; i < cards.length; i++) {
@@ -239,8 +232,8 @@ function liveSearch() {
 }
 
 //A little delay
-let typingTimer;
-let typeInterval = 500;
+let typingTimer;               
+let typeInterval = 500;  
 let searchInput = document.getElementById('searchbox');
 
 searchInput.addEventListener('keyup', () => {
@@ -278,12 +271,6 @@ func main() {
 		// write to stderr
 		os.Stderr.WriteString("Error unmarshaling YAML: " + err.Error() + "\n")
 		return
-	}
-
-	// Ensure that all arbitrary text content is sanitized before display
-	for i, m := range models {
-		models[i].Name = bluemonday.StrictPolicy().Sanitize(m.Name)
-		models[i].Description = bluemonday.StrictPolicy().Sanitize(m.Description)
 	}
 
 	// render the template
