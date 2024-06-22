@@ -4,7 +4,7 @@ import (
 	"os"
 	"runtime"
 
-	. "github.com/mudler/LocalAI/pkg/oci" // Update with your module path
+	. "github.com/go-skynet/LocalAI/pkg/oci" // Update with your module path
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -30,7 +30,7 @@ var _ = Describe("OCI", func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer os.RemoveAll(dir)
 
-			err = ExtractOCIImage(img, imageName, dir, nil)
+			err = ExtractOCIImage(img, dir)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
