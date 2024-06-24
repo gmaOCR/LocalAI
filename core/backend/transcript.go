@@ -67,7 +67,7 @@ func ModelTranscription(audio, language string, translate bool, ml *model.ModelL
 	model "github.com/mudler/LocalAI/pkg/model"
 )
 
-func ModelTranscription(audio, language string, ml *model.ModelLoader, backendConfig config.BackendConfig, appConfig *config.ApplicationConfig) (*schema.TranscriptionResult, error) {
+func ModelTranscription(audio, language string, translate bool, ml *model.ModelLoader, backendConfig config.BackendConfig, appConfig *config.ApplicationConfig) (*schema.TranscriptionResult, error) {
 
 	opts := modelOpts(backendConfig, appConfig, []model.Option{
 		model.WithBackendString(model.WhisperBackend),
@@ -87,9 +87,10 @@ func ModelTranscription(audio, language string, ml *model.ModelLoader, backendCo
 	}
 
 	return whisperModel.AudioTranscription(context.Background(), &proto.TranscriptRequest{
-		Dst:      audio,
-		Language: language,
-		Threads:  uint32(*backendConfig.Threads),
+		Dst:       audio,
+		Language:  language,
+		Translate: translate,
+		Threads:   uint32(*backendConfig.Threads),
 	})
 >>>>>>> 5f2b87fa (Revert "[Refactor]: Core/API Split" (#1550)):api/backend/transcript.go
 }
