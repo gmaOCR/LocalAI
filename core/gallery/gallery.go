@@ -1,109 +1,106 @@
 package gallery
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/imdario/mergo"
 	"github.com/mudler/LocalAI/core/config"
 	"github.com/mudler/LocalAI/pkg/downloader"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
 
-func GetGalleryConfigFromURL[T any](url string, basePath string) (T, error) {
-	var config T
-	uri := downloader.URI(url)
-	err := uri.DownloadWithCallback(basePath, func(url string, d []byte) error {
-		return yaml.Unmarshal(d, &config)
-	})
-	if err != nil {
-		log.Error().Err(err).Str("url", url).Msg("failed to get gallery config for url")
-		return config, err
-	}
-	return config, nil
-}
+// Installs a model from the gallery
+func InstallModelFromGallery(galleries []config.Gallery, name string, basePath string, req GalleryModel, downloadStatus func(string, string, string, float64)) error {
 
-func ReadConfigFile[T any](filePath string) (*T, error) {
-	// Read the YAML file
-	yamlFile, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read YAML file: %v", err)
-	}
+	applyModel := func(model *GalleryModel) error {
+		name = strings.ReplaceAll(name, string(os.PathSeparator), "__")
 
-	// Unmarshal YAML data into a Config struct
-	var config T
-	err = yaml.Unmarshal(yamlFile, &config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal YAML: %v", err)
-	}
+		var config Config
 
-	return &config, nil
-}
-
-type GalleryElement interface {
-	SetGallery(gallery config.Gallery)
-	SetInstalled(installed bool)
-	GetName() string
-	GetDescription() string
-	GetTags() []string
-	GetGallery() config.Gallery
-}
-
-type GalleryElements[T GalleryElement] []T
-
-func (gm GalleryElements[T]) Search(term string) GalleryElements[T] {
-	var filteredModels GalleryElements[T]
-
-	for _, m := range gm {
-		if strings.Contains(m.GetName(), term) ||
-			strings.Contains(m.GetDescription(), term) ||
-			strings.Contains(m.GetGallery().Name, term) ||
-			strings.Contains(strings.Join(m.GetTags(), ","), term) {
-			filteredModels = append(filteredModels, m)
+		if len(model.URL) > 0 {
+			var err error
+			config, err = GetGalleryConfigFromURL(model.URL, basePath)
+			if err != nil {
+				return err
+			}
+		} else if len(model.ConfigFile) > 0 {
+			// TODO: is this worse than using the override method with a blank cfg yaml?
+			reYamlConfig, err := yaml.Marshal(model.ConfigFile)
+			if err != nil {
+				return err
+			}
+			config = Config{
+				ConfigFile:  string(reYamlConfig),
+				Description: model.Description,
+				License:     model.License,
+				URLs:        model.URLs,
+				Name:        model.Name,
+				Files:       make([]File, 0), // Real values get added below, must be blank
+				// Prompt Template Skipped for now - I expect in this mode that they will be delivered as files.
+			}
+		} else {
+			return fmt.Errorf("invalid gallery model %+v", model)
 		}
-	}
-	return filteredModels
-}
 
-func (gm GalleryElements[T]) FindByName(name string) T {
-	for _, m := range gm {
-		if strings.EqualFold(m.GetName(), name) {
-			return m
+		installName := model.Name
+		if req.Name != "" {
+			installName = req.Name
 		}
+
+		// Copy the model configuration from the request schema
+		config.URLs = append(config.URLs, model.URLs...)
+		config.Icon = model.Icon
+		config.Files = append(config.Files, req.AdditionalFiles...)
+		config.Files = append(config.Files, model.AdditionalFiles...)
+
+		// TODO model.Overrides could be merged with user overrides (not defined yet)
+		if err := mergo.Merge(&model.Overrides, req.Overrides, mergo.WithOverride); err != nil {
+			return err
+		}
+
+		if err := InstallModel(basePath, installName, &config, model.Overrides, downloadStatus); err != nil {
+			return err
+		}
+
+		return nil
 	}
-	var zero T
-	return zero
+
+	models, err := AvailableGalleryModels(galleries, basePath)
+	if err != nil {
+		return err
+	}
+
+	model := FindModel(models, name, basePath)
+	if model == nil {
+		return fmt.Errorf("no model found with name %q", name)
+	}
+
+	return applyModel(model)
 }
 
-func (gm GalleryElements[T]) Paginate(pageNum int, itemsNum int) GalleryElements[T] {
-	start := (pageNum - 1) * itemsNum
-	end := start + itemsNum
-	if start > len(gm) {
-		start = len(gm)
-	}
-	if end > len(gm) {
-		end = len(gm)
-	}
-	return gm[start:end]
-}
-
-func FindGalleryElement[T GalleryElement](models []T, name string, basePath string) T {
-	var model T
+func FindModel(models []*GalleryModel, name string, basePath string) *GalleryModel {
+	var model *GalleryModel
 	name = strings.ReplaceAll(name, string(os.PathSeparator), "__")
 
 	if !strings.Contains(name, "@") {
 		for _, m := range models {
-			if strings.EqualFold(m.GetName(), name) {
+			if strings.EqualFold(m.Name, name) {
 				model = m
 				break
 			}
 		}
 
+		if model == nil {
+			return nil
+		}
 	} else {
 		for _, m := range models {
-			if strings.EqualFold(name, fmt.Sprintf("%s@%s", m.GetGallery().Name, m.GetName())) {
+			if strings.EqualFold(name, fmt.Sprintf("%s@%s", m.Gallery.Name, m.Name)) {
 				model = m
 				break
 			}
@@ -116,40 +113,12 @@ func FindGalleryElement[T GalleryElement](models []T, name string, basePath stri
 // List available models
 // Models galleries are a list of yaml files that are hosted on a remote server (for example github).
 // Each yaml file contains a list of models that can be downloaded and optionally overrides to define a new model setting.
-func AvailableGalleryModels(galleries []config.Gallery, basePath string) (GalleryElements[*GalleryModel], error) {
+func AvailableGalleryModels(galleries []config.Gallery, basePath string) ([]*GalleryModel, error) {
 	var models []*GalleryModel
 
 	// Get models from galleries
 	for _, gallery := range galleries {
-		galleryModels, err := getGalleryElements[*GalleryModel](gallery, basePath, func(model *GalleryModel) bool {
-			if _, err := os.Stat(filepath.Join(basePath, fmt.Sprintf("%s.yaml", model.GetName()))); err == nil {
-				return true
-			}
-			return false
-		})
-		if err != nil {
-			return nil, err
-		}
-		models = append(models, galleryModels...)
-	}
-
-	return models, nil
-}
-
-// List available backends
-func AvailableBackends(galleries []config.Gallery, basePath string) (GalleryElements[*GalleryBackend], error) {
-	var models []*GalleryBackend
-
-	// Get models from galleries
-	for _, gallery := range galleries {
-		galleryModels, err := getGalleryElements[*GalleryBackend](gallery, basePath, func(backend *GalleryBackend) bool {
-			backends, err := ListSystemBackends(basePath)
-			if err != nil {
-				return false
-			}
-			_, exists := backends[backend.GetName()]
-			return exists
-		})
+		galleryModels, err := getGalleryModels(gallery, basePath)
 		if err != nil {
 			return nil, err
 		}
@@ -161,8 +130,7 @@ func AvailableBackends(galleries []config.Gallery, basePath string) (GalleryElem
 
 func findGalleryURLFromReferenceURL(url string, basePath string) (string, error) {
 	var refFile string
-	uri := downloader.URI(url)
-	err := uri.DownloadWithCallback(basePath, func(url string, d []byte) error {
+	err := downloader.DownloadAndUnmarshal(url, basePath, func(url string, d []byte) error {
 		refFile = string(d)
 		if len(refFile) == 0 {
 			return fmt.Errorf("invalid reference file at url %s: %s", url, d)
@@ -174,8 +142,8 @@ func findGalleryURLFromReferenceURL(url string, basePath string) (string, error)
 	return refFile, err
 }
 
-func getGalleryElements[T GalleryElement](gallery config.Gallery, basePath string, isInstalledCallback func(T) bool) ([]T, error) {
-	var models []T = []T{}
+func getGalleryModels(gallery config.Gallery, basePath string) ([]*GalleryModel, error) {
+	var models []*GalleryModel = []*GalleryModel{}
 
 	if strings.HasSuffix(gallery.URL, ".ref") {
 		var err error
@@ -184,9 +152,8 @@ func getGalleryElements[T GalleryElement](gallery config.Gallery, basePath strin
 			return models, err
 		}
 	}
-	uri := downloader.URI(gallery.URL)
 
-	err := uri.DownloadWithCallback(basePath, func(url string, d []byte) error {
+	err := downloader.DownloadAndUnmarshal(gallery.URL, basePath, func(url string, d []byte) error {
 		return yaml.Unmarshal(d, &models)
 	})
 	if err != nil {
@@ -198,8 +165,66 @@ func getGalleryElements[T GalleryElement](gallery config.Gallery, basePath strin
 
 	// Add gallery to models
 	for _, model := range models {
-		model.SetGallery(gallery)
-		model.SetInstalled(isInstalledCallback(model))
+		model.Gallery = gallery
+		// we check if the model was already installed by checking if the config file exists
+		// TODO: (what to do if the model doesn't install a config file?)
+		if _, err := os.Stat(filepath.Join(basePath, fmt.Sprintf("%s.yaml", model.Name))); err == nil {
+			model.Installed = true
+		}
 	}
 	return models, nil
+}
+
+func GetLocalModelConfiguration(basePath string, name string) (*Config, error) {
+	name = strings.ReplaceAll(name, string(os.PathSeparator), "__")
+	galleryFile := filepath.Join(basePath, galleryFileName(name))
+	return ReadConfigFile(galleryFile)
+}
+
+func DeleteModelFromSystem(basePath string, name string, additionalFiles []string) error {
+	// os.PathSeparator is not allowed in model names. Replace them with "__" to avoid conflicts with file paths.
+	name = strings.ReplaceAll(name, string(os.PathSeparator), "__")
+
+	configFile := filepath.Join(basePath, fmt.Sprintf("%s.yaml", name))
+
+	galleryFile := filepath.Join(basePath, galleryFileName(name))
+
+	var err error
+	// Delete all the files associated to the model
+	// read the model config
+	galleryconfig, err := ReadConfigFile(galleryFile)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to read gallery file %s", configFile)
+	}
+
+	// Remove additional files
+	if galleryconfig != nil {
+		for _, f := range galleryconfig.Files {
+			fullPath := filepath.Join(basePath, f.Filename)
+			log.Debug().Msgf("Removing file %s", fullPath)
+			if e := os.Remove(fullPath); e != nil {
+				err = errors.Join(err, fmt.Errorf("failed to remove file %s: %w", f.Filename, e))
+			}
+		}
+	}
+
+	for _, f := range additionalFiles {
+		fullPath := filepath.Join(filepath.Join(basePath, f))
+		log.Debug().Msgf("Removing additional file %s", fullPath)
+		if e := os.Remove(fullPath); e != nil {
+			err = errors.Join(err, fmt.Errorf("failed to remove file %s: %w", f, e))
+		}
+	}
+
+	log.Debug().Msgf("Removing model config file %s", configFile)
+
+	// Delete the model config file
+	if e := os.Remove(configFile); e != nil {
+		err = errors.Join(err, fmt.Errorf("failed to remove file %s: %w", configFile, e))
+	}
+
+	// Delete gallery config file
+	os.Remove(galleryFile)
+
+	return err
 }
