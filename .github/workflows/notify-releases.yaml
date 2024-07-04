@@ -12,9 +12,11 @@ jobs:
         RELEASE_TITLE: ${{ github.event.release.name }}
         RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
     steps:
-    - uses: mudler/localai-github-action@v1
-      with:
-        model: 'gemma-3-12b-it' # Any from models.localai.io, or from huggingface.com with: "huggingface://<repository>/file"
+    - name: Start LocalAI
+      run: |
+        echo "Starting LocalAI..."
+        docker run -e -ti -d --name local-ai -p 8080:8080 localai/localai:master-ffmpeg-core run --debug $MODEL_NAME
+        until [ "`docker inspect -f {{.State.Health.Status}} local-ai`" == "healthy" ]; do echo "Waiting for container to be ready";  docker logs --tail 10 local-ai; sleep 2; done
     - name: Summarize
       id: summarize
       run: |
@@ -55,7 +57,7 @@ jobs:
               } >> "$GITHUB_OUTPUT"
     - name: Discord notification
       env:
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_RELEASE }}
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_USERNAME: "LocalAI-Bot"
         DISCORD_AVATAR: "https://avatars.githubusercontent.com/u/139863280?v=4"
       uses: Ilshidur/action-discord@master
