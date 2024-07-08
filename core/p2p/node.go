@@ -5,16 +5,13 @@ import (
 	"time"
 )
 
-const (
-	defaultServicesID = "services"
-	WorkerID          = "worker"
-)
+const defaultServicesID = "services_localai"
+const FederatedID = "federated"
 
 type NodeData struct {
 	Name          string
 	ID            string
 	TunnelAddress string
-	ServiceID     string
 	LastSeen      time.Time
 }
 
@@ -38,19 +35,6 @@ func GetAvailableNodes(serviceID string) []NodeData {
 		availableNodes = append(availableNodes, v)
 	}
 	return availableNodes
-}
-
-func GetNode(serviceID, nodeID string) (NodeData, bool) {
-	if serviceID == "" {
-		serviceID = defaultServicesID
-	}
-	mu.Lock()
-	defer mu.Unlock()
-	if _, ok := nodes[serviceID]; !ok {
-		return NodeData{}, false
-	}
-	nd, exists := nodes[serviceID][nodeID]
-	return nd, exists
 }
 
 func AddNode(serviceID string, node NodeData) {
