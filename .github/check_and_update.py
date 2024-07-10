@@ -4,7 +4,7 @@ import requests
 import sys
 import os
 
-uri = sys.argv[1]
+uri = sys.argv[0]
 file_name = uri.split('/')[-1]
 
 # Function to parse the URI and determine download method
@@ -29,19 +29,13 @@ def calculate_sha256(file_path):
 def manual_safety_check_hf(repo_id):
     scanResponse = requests.get('https://huggingface.co/api/models/' + repo_id + "/scan")
     scan = scanResponse.json()
-    # Check if 'hasUnsafeFile' exists in the response
-    if 'hasUnsafeFile' in scan:
-        if scan['hasUnsafeFile']:
-            return scan
-        else:
-            return None
-    else:
-        return None
+    if scan['hasUnsafeFile']:
+        return scan
+    return None
 
 download_type, repo_id_or_url = parse_uri(uri)
 
 new_checksum =  None
-file_path = None
 
 # Decide download method based on URI type
 if download_type == 'huggingface':
