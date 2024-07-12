@@ -31,7 +31,6 @@ templated_yaml = """
 client = OpenAI()
 
 model = os.environ.get("OPENAI_MODEL", "hermes-2-theta-llama-3-8b")
-quantization = os.environ.get("QUANTIZATION", "Q4_K_M")
 
 
 def summarize(text: str) -> str:
@@ -70,12 +69,12 @@ if __name__ == "__main__":
         if "readme" in file.lower():
             readmeFile = file
             print(f"Found README file: {readmeFile}")
-        if quantization.lower() in file.lower():
+        if "q4_k_m" in file.lower():
             file_path = file
 
     
     if file_path is None:
-        print(f"No file with {quantization} found, using the first file in the list.")
+        print("No file with Q4_K_M found, using the first file in the list.")
         exit(1)    
 
 
@@ -104,10 +103,7 @@ if __name__ == "__main__":
     if readmeFile:
         # If there is a README file, read it
         readme = fs.read_text(readmeFile)
-        try:
-            summarized_readme = summarize(readme)
-        except Exception as e:
-            print(f"Error summarizing the README: {str(e)}", file=sys.stderr)            
+        summarized_readme = summarize(readme)
         summarized_readme = format_description(summarized_readme)
 
     print("Model correctly processed")
