@@ -7,14 +7,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
+	"time"
+
+	"math/rand/v2"
 
 	"github.com/mudler/edgevpn/pkg/node"
+	"github.com/mudler/edgevpn/pkg/protocol"
+	"github.com/mudler/edgevpn/pkg/types"
 	"github.com/rs/zerolog/log"
 )
 
 func (f *FederatedServer) Start(ctx context.Context) error {
+
 	n, err := NewNode(f.p2ptoken)
 	if err != nil {
 		return fmt.Errorf("creating a new node: %w", err)
@@ -26,7 +31,7 @@ func (f *FederatedServer) Start(ctx context.Context) error {
 
 	if err := ServiceDiscoverer(ctx, n, f.p2ptoken, f.service, func(servicesID string, tunnel NodeData) {
 		log.Debug().Msgf("Discovered node: %s", tunnel.ID)
-	}, false); err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -42,13 +47,28 @@ func (fs *FederatedServer) proxy(ctx context.Context, node *node.Node) error {
 		log.Error().Err(err).Msg("Error listening")
 		return err
 	}
+	//	ll.Info("Binding local port on", srcaddr)
 
-	go func() {
-		<-ctx.Done()
-		l.Close()
-	}()
+	ledger, _ := node.Ledger()
 
-	nodeAnnounce(ctx, node)
+	// Announce ourselves so nodes accepts our connection
+	ledger.Announce(
+		ctx,
+		10*time.Second,
+		func() {
+			// Retrieve current ID for ip in the blockchain
+			//_, found := ledger.GetKey(protocol.UsersLedgerKey, node.Host().ID().String())
+			// If mismatch, update the blockchain
+			//if !found {
+			updatedMap := map[string]interface{}{}
+			updatedMap[node.Host().ID().String()] = &types.User{
+				PeerID:    node.Host().ID().String(),
+				Timestamp: time.Now().String(),
+			}
+			ledger.Add(protocol.UsersLedgerKey, updatedMap)
+			//	}
+		},
+	)
 
 	defer l.Close()
 	for {
@@ -56,7 +76,7 @@ func (fs *FederatedServer) proxy(ctx context.Context, node *node.Node) error {
 		case <-ctx.Done():
 			return errors.New("context canceled")
 		default:
-			log.Debug().Msgf("New connection from %s", l.Addr().String())
+			log.Debug().Msg("New for connection")
 			// Listen for an incoming connection.
 			conn, err := l.Accept()
 			if err != nil {
@@ -66,79 +86,42 @@ func (fs *FederatedServer) proxy(ctx context.Context, node *node.Node) error {
 
 			// Handle connections in a new goroutine, forwarding to the p2p service
 			go func() {
-				workerID := ""
-				if fs.workerTarget != "" {
-					workerID = fs.workerTarget
-				} else if fs.loadBalanced {
-					log.Debug().Msgf("Load balancing request")
-
-					workerID = fs.SelectLeastUsedServer()
-					if workerID == "" {
-						log.Debug().Msgf("Least used server not found, selecting random")
-						workerID = fs.RandomServer()
+				var tunnelAddresses []string
+				for _, v := range GetAvailableNodes(fs.service) {
+					if v.IsOnline() {
+						tunnelAddresses = append(tunnelAddresses, v.TunnelAddress)
+					} else {
+						log.Info().Msgf("Node %s is offline", v.ID)
 					}
-				} else {
-					workerID = fs.RandomServer()
 				}
 
-				if workerID == "" {
+				if len(tunnelAddresses) == 0 {
 					log.Error().Msg("No available nodes yet")
-					fs.sendHTMLResponse(conn, 503, "Sorry, waiting for nodes to connect")
 					return
 				}
 
-				log.Debug().Msgf("Selected node %s", workerID)
-				nodeData, exists := GetNode(fs.service, workerID)
-				if !exists {
-					log.Error().Msgf("Node %s not found", workerID)
-					fs.sendHTMLResponse(conn, 404, "Node not found")
+				// open a TCP stream to one of the tunnels
+				// chosen randomly
+				// TODO: optimize this and track usage
+				tunnelAddr := tunnelAddresses[rand.IntN(len(tunnelAddresses))]
+
+				tunnelConn, err := net.Dial("tcp", tunnelAddr)
+				if err != nil {
+					log.Error().Err(err).Msg("Error connecting to tunnel")
 					return
 				}
 
-				proxyP2PConnection(ctx, node, nodeData.ServiceID, conn)
-				if fs.loadBalanced {
-					fs.RecordRequest(workerID)
-				}
+				log.Info().Msgf("Redirecting %s to %s", conn.LocalAddr().String(), tunnelConn.RemoteAddr().String())
+				closer := make(chan struct{}, 2)
+				go copyStream(closer, tunnelConn, conn)
+				go copyStream(closer, conn, tunnelConn)
+				<-closer
+
+				tunnelConn.Close()
+				conn.Close()
+				//	ll.Infof("(service %s) Done handling %s", serviceID, l.Addr().String())
 			}()
 		}
 	}
-}
 
-// sendHTMLResponse sends a basic HTML response with a status code and a message.
-// This is extracted to make the HTML content maintainable.
-func (fs *FederatedServer) sendHTMLResponse(conn net.Conn, statusCode int, message string) {
-	defer conn.Close()
-
-	// Define the HTML content separately for easier maintenance.
-	htmlContent := fmt.Sprintf("<html><body><h1>%s</h1></body></html>\r\n", message)
-
-	// Create the HTTP response with dynamic status code and content.
-	response := fmt.Sprintf(
-		"HTTP/1.1 %d %s\r\n"+
-			"Content-Type: text/html\r\n"+
-			"Connection: close\r\n"+
-			"\r\n"+
-			"%s",
-		statusCode, getHTTPStatusText(statusCode), htmlContent,
-	)
-
-	// Write the response to the client connection.
-	_, writeErr := io.WriteString(conn, response)
-	if writeErr != nil {
-		log.Error().Err(writeErr).Msg("Error writing response to client")
-	}
-}
-
-// getHTTPStatusText returns a textual representation of HTTP status codes.
-func getHTTPStatusText(statusCode int) string {
-	switch statusCode {
-	case 503:
-		return "Service Unavailable"
-	case 404:
-		return "Not Found"
-	case 200:
-		return "OK"
-	default:
-		return "Unknown Status"
-	}
 }
