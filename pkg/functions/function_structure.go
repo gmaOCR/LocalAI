@@ -1,10 +1,6 @@
 package functions
 
-import (
-	"encoding/json"
-
-	"github.com/mudler/LocalAI/pkg/functions/grammars"
-)
+import "encoding/json"
 
 type Item struct {
 	Type       string                 `json:"type"`
@@ -17,27 +13,13 @@ type JSONFunctionStructure struct {
 	Defs  map[string]interface{} `json:"$defs,omitempty"`
 }
 
-func (j JSONFunctionStructure) Grammar(options ...func(*grammars.GrammarOption)) (string, error) {
-	grammarOpts := &grammars.GrammarOption{}
+func (j JSONFunctionStructure) Grammar(options ...func(*GrammarOption)) (string, error) {
+	grammarOpts := &GrammarOption{}
 	grammarOpts.Apply(options...)
 
 	dat, err := json.Marshal(j)
 	if err != nil {
 		return "", err
 	}
-
-	converter := NewSchemaConverter(*grammarOpts)
-	return converter.GrammarFromBytes(dat, options...)
-}
-
-type SchemaConverter interface {
-	GrammarFromBytes([]byte, ...func(*grammars.GrammarOption)) (string, error)
-}
-
-func NewSchemaConverter(opt grammars.GrammarOption) SchemaConverter {
-	switch {
-	case opt.SchemaType == grammars.LLama31Schema:
-		return grammars.NewLLama31SchemaConverter(opt.FunctionName)
-	}
-	return grammars.NewJSONSchemaConverter(opt.PropOrder)
+	return NewJSONSchemaConverter(grammarOpts.PropOrder).GrammarFromBytes(dat, options...)
 }
