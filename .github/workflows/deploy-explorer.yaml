@@ -31,9 +31,9 @@ jobs:
           make protogen-go
       - name: Build api
         run: |
-          CGO_ENABLED=0 make build-api
+          make build-api
       - name: rm
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.0.3
         with:
             host: ${{ secrets.EXPLORER_SSH_HOST }}
             username: ${{ secrets.EXPLORER_SSH_USERNAME }}
@@ -42,7 +42,7 @@ jobs:
             script: |
                 sudo rm -rf local-ai/ || true
       - name: copy file via ssh
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@v0.1.7
         with:
             host: ${{ secrets.EXPLORER_SSH_HOST }}
             username: ${{ secrets.EXPLORER_SSH_USERNAME }}
@@ -53,7 +53,7 @@ jobs:
             rm: true
             target: ./local-ai
       - name: restarting
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.0.3
         with:
             host: ${{ secrets.EXPLORER_SSH_HOST }}
             username: ${{ secrets.EXPLORER_SSH_USERNAME }}

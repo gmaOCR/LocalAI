@@ -16,23 +16,32 @@ import (
 type DiscoveryServer struct {
 	sync.Mutex
 	database       *Database
+	networkState   *NetworkState
 	connectionTime time.Duration
-	errorThreshold int
+}
+
+type NetworkState struct {
+	Networks map[string]Network
+}
+
+func (s *DiscoveryServer) NetworkState() *NetworkState {
+	s.Lock()
+	defer s.Unlock()
+	return s.networkState
 }
 
 // NewDiscoveryServer creates a new DiscoveryServer with the given Database.
 // it keeps the db state in sync with the network state
-func NewDiscoveryServer(db *Database, dur time.Duration, failureThreshold int) *DiscoveryServer {
+func NewDiscoveryServer(db *Database, dur time.Duration) *DiscoveryServer {
 	if dur == 0 {
 		dur = 50 * time.Second
-	}
-	if failureThreshold == 0 {
-		failureThreshold = 3
 	}
 	return &DiscoveryServer{
 		database:       db,
 		connectionTime: dur,
-		errorThreshold: failureThreshold,
+		networkState: &NetworkState{
+			Networks: map[string]Network{},
+		},
 	}
 }
 
@@ -57,21 +66,21 @@ func (s *DiscoveryServer) runBackground() {
 		n, err := p2p.NewNode(token)
 		if err != nil {
 			log.Err(err).Msg("Failed to create node")
-			s.failedToken(token)
+			s.database.Delete(token)
 			continue
 		}
 
 		err = n.Start(c)
 		if err != nil {
 			log.Err(err).Msg("Failed to start node")
-			s.failedToken(token)
+			s.database.Delete(token)
 			continue
 		}
 
 		ledger, err := n.Ledger()
 		if err != nil {
 			log.Err(err).Msg("Failed to start ledger")
-			s.failedToken(token)
+			s.database.Delete(token)
 			continue
 		}
 
@@ -100,37 +109,21 @@ func (s *DiscoveryServer) runBackground() {
 
 		if hasWorkers {
 			s.Lock()
-			data, _ := s.database.Get(token)
-			(&data).Clusters = ledgerK
-			(&data).Failures = 0
-			s.database.Set(token, data)
+			s.networkState.Networks[token] = Network{
+				Clusters: ledgerK,
+			}
 			s.Unlock()
 		} else {
-			s.failedToken(token)
+			log.Info().Any("network", token).Msg("No workers found in the network. Removing it from the database")
+			s.database.Delete(token)
 		}
 	}
-
-	s.deleteFailedConnections()
 }
 
-func (s *DiscoveryServer) failedToken(token string) {
-	s.Lock()
-	defer s.Unlock()
-	data, _ := s.database.Get(token)
-	(&data).Failures++
-	s.database.Set(token, data)
-}
-
-func (s *DiscoveryServer) deleteFailedConnections() {
-	s.Lock()
-	defer s.Unlock()
-	for _, t := range s.database.TokenList() {
-		data, _ := s.database.Get(t)
-		if data.Failures > s.errorThreshold {
-			log.Info().Any("token", t).Msg("Token has been removed from the database")
-			s.database.Delete(t)
-		}
-	}
+type ClusterData struct {
+	Workers   []string
+	Type      string
+	NetworkID string
 }
 
 func (s *DiscoveryServer) retrieveNetworkData(c context.Context, ledger *blockchain.Ledger, networkData chan ClusterData) {
@@ -197,7 +190,7 @@ func (s *DiscoveryServer) retrieveNetworkData(c context.Context, ledger *blockch
 }
 
 // Start the discovery server. This is meant to be run in to a goroutine.
-func (s *DiscoveryServer) Start(ctx context.Context, keepRunning bool) error {
+func (s *DiscoveryServer) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -205,9 +198,6 @@ func (s *DiscoveryServer) Start(ctx context.Context, keepRunning bool) error {
 		default:
 			// Collect data
 			s.runBackground()
-			if !keepRunning {
-				return nil
-			}
 		}
 	}
 }
