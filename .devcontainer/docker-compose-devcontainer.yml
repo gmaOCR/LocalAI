@@ -6,15 +6,14 @@ services:
       target: devcontainer
       args:
       - FFMPEG=true
-      - GO_TAGS=p2p tts
+      - IMAGE_TYPE=extras
+      - GO_TAGS=stablediffusion p2p tts
     env_file:
       - ../.env
     ports:
       - 8080:8080
     volumes:
-      - localai_workspace:/workspace
-      - ../models:/host-models
-      - ./customization:/devcontainer-customization
+      - ..:/workspace:cached
     command: /bin/sh -c "while sleep 1000; do :; done"
     cap_add:
       - SYS_PTRACE
@@ -44,4 +43,3 @@ services:
       - ./grafana:/etc/grafana/provisioning/datasources
 volumes:
   prom_data:
-  localai_workspace:
