@@ -7,19 +7,14 @@ If files with those names exist here, they will be called at the end of the norm
 
 This is a good place to set things like `git config --global user.name` are set - and to handle any other files that are mounted via this directory.
 
-To assist in doing so, `source /.devcontainer-scripts/utils.sh` will provide utility functions that may be useful - for example:
+An example of a useful script might be:
 
 ```
 #!/bin/bash
-
-source "/.devcontainer-scripts/utils.sh"
-
-sshfiles=("config", "key.pub")
-
-setup_ssh "${sshfiles[@]}"
-
-config_user "YOUR NAME" "YOUR EMAIL"
-
-config_remote "REMOTE NAME" "REMOTE URL"
-
+gcn=$(git config --global user.name)
+if [ -z "$gcn" ]; then
+    git config --global user.name YOUR.NAME
+    git config --global user.email YOUR.EMAIL
+    git remote add PREFIX FORK_URL
+fi
 ```
