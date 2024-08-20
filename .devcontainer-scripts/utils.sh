@@ -9,7 +9,6 @@
 # Param 2: email
 #
 config_user() {
-    echo "Configuring git for $1 <$2>"
     local gcn=$(git config --global user.name)
     if [ -z "${gcn}" ]; then
         echo "Setting up git user / remote"
@@ -25,7 +24,6 @@ config_user() {
 # Param 2: remote url
 #
 config_remote() {
-    echo "Adding git remote and fetching $2 as $1"
     local gr=$(git remote -v | grep $1)
     if [ -z "${gr}" ]; then
         git remote add $1 $2
@@ -34,22 +32,18 @@ config_remote() {
 }
 
 # Setup special .ssh files
-# Prints out lines of text to make things pretty
+#
 # Param 1: bash array, filenames relative to the customization directory that should be copied to ~/.ssh
 setup_ssh() {
-    echo "starting ~/.ssh directory setup..."
-    mkdir -p "${HOME}.ssh"
-    chmod 0700 "${HOME}/.ssh"
-    echo "-----"
     local files=("$@")
-    for file in "${files[@]}" ; do
+    for file in "${files[@]}"; then
         local cfile="/devcontainer-customization/${file}"
-        local hfile="${HOME}/.ssh/${file}"
+        local hfile="~/.ssh/${file}"
         if [ ! -f "${hfile}" ]; then
-            echo "copying \"${file}\""
+            echo "copying ${file}"
             cp "${cfile}" "${hfile}"
             chmod 600 "${hfile}"
         fi
     done
-    echo "~/.ssh directory setup complete!"
+    ls ~/.ssh
 }
