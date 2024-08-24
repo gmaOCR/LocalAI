@@ -70,11 +70,11 @@ func (t *SoundGenerationCMD) Run(ctx *cliContext.Context) error {
 	opts := &config.ApplicationConfig{
 		ModelPath:            t.ModelsPath,
 		Context:              context.Background(),
-		GeneratedContentDir:  outputDir,
+		AudioDir:             outputDir,
 		AssetsDestination:    t.BackendAssetsPath,
 		ExternalGRPCBackends: externalBackends,
 	}
-	ml := model.NewModelLoader(opts.ModelPath, opts.SingleBackend)
+	ml := model.NewModelLoader(opts.ModelPath)
 
 	defer func() {
 		err := ml.StopAllGRPC()
@@ -85,15 +85,13 @@ func (t *SoundGenerationCMD) Run(ctx *cliContext.Context) error {
 
 	options := config.BackendConfig{}
 	options.SetDefaults()
-	options.Backend = t.Backend
-	options.Model = t.Model
 
 	var inputFile *string
 	if t.InputFile != "" {
 		inputFile = &t.InputFile
 	}
 
-	filePath, _, err := backend.SoundGeneration(text,
+	filePath, _, err := backend.SoundGeneration(t.Backend, t.Model, text,
 		parseToFloat32Ptr(t.Duration), parseToFloat32Ptr(t.Temperature), &t.DoSample,
 		inputFile, parseToInt32Ptr(t.InputFileSampleDivisor), ml, opts, options)
 

@@ -13,6 +13,8 @@ import (
 )
 
 func SoundGeneration(
+	backend string,
+	modelFile string,
 	text string,
 	duration *float32,
 	temperature *float32,
@@ -23,33 +25,38 @@ func SoundGeneration(
 	appConfig *config.ApplicationConfig,
 	backendConfig config.BackendConfig,
 ) (string, *proto.Result, error) {
+	if backend == "" {
+		return "", nil, fmt.Errorf("backend is a required parameter")
+	}
 
-	opts := ModelOptions(backendConfig, appConfig)
-	soundGenModel, err := loader.Load(opts...)
+	grpcOpts := gRPCModelOpts(backendConfig)
+	opts := modelOpts(config.BackendConfig{}, appConfig, []model.Option{
+		model.WithBackendString(backend),
+		model.WithModel(modelFile),
+		model.WithContext(appConfig.Context),
+		model.WithAssetDir(appConfig.AssetsDestination),
+		model.WithLoadGRPCLoadModelOpts(grpcOpts),
+	})
+
+	soundGenModel, err := loader.BackendLoader(opts...)
 	if err != nil {
 		return "", nil, err
 	}
-	defer loader.Close()
 
 	if soundGenModel == nil {
 		return "", nil, fmt.Errorf("could not load sound generation model")
 	}
 
-	if err := os.MkdirAll(appConfig.GeneratedContentDir, 0750); err != nil {
+	if err := os.MkdirAll(appConfig.AudioDir, 0750); err != nil {
 		return "", nil, fmt.Errorf("failed creating audio directory: %s", err)
 	}
 
-	audioDir := filepath.Join(appConfig.GeneratedContentDir, "audio")
-	if err := os.MkdirAll(audioDir, 0750); err != nil {
-		return "", nil, fmt.Errorf("failed creating audio directory: %s", err)
-	}
-
-	fileName := utils.GenerateUniqueFileName(audioDir, "sound_generation", ".wav")
-	filePath := filepath.Join(audioDir, fileName)
+	fileName := utils.GenerateUniqueFileName(appConfig.AudioDir, "sound_generation", ".wav")
+	filePath := filepath.Join(appConfig.AudioDir, fileName)
 
 	res, err := soundGenModel.SoundGeneration(context.Background(), &proto.SoundGenerationRequest{
 		Text:        text,
-		Model:       backendConfig.Model,
+		Model:       modelFile,
 		Dst:         filePath,
 		Sample:      doSample,
 		Duration:    duration,
