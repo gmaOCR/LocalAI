@@ -1,30 +1,16 @@
 package model
 
-import (
-	"sync"
-
-	grpc "github.com/mudler/LocalAI/pkg/grpc"
-	process "github.com/mudler/go-processmanager"
-)
+import grpc "github.com/mudler/LocalAI/pkg/grpc"
 
 type Model struct {
-	ID      string `json:"id"`
 	address string
 	client  grpc.Backend
-	process *process.Process
-	sync.Mutex
 }
 
-func NewModel(ID, address string, process *process.Process) *Model {
+func NewModel(address string) *Model {
 	return &Model{
-		ID:      ID,
 		address: address,
-		process: process,
 	}
-}
-
-func (m *Model) Process() *process.Process {
-	return m.process
 }
 
 func (m *Model) GRPC(parallel bool, wd *WatchDog) grpc.Backend {
@@ -37,8 +23,7 @@ func (m *Model) GRPC(parallel bool, wd *WatchDog) grpc.Backend {
 		enableWD = true
 	}
 
-	m.Lock()
-	defer m.Unlock()
-	m.client = grpc.NewClient(m.address, parallel, wd, enableWD)
-	return m.client
+	client := grpc.NewClient(m.address, parallel, wd, enableWD)
+	m.client = client
+	return client
 }
