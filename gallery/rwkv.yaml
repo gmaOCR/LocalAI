@@ -16,7 +16,6 @@ config_file: |
 
     stopwords:
     - 'Assistant:'
-    - '<s>'
 
     template:
       chat: "{{.Input}}\nAssistant: "
