@@ -35,8 +35,6 @@ const char* sample_method_str[] = {
     "ipndm",
     "ipndm_v",
     "lcm",
-    "ddim_trailing",
-    "tcd",
 };
 
 // Names of the sigma schedule overrides, same order as sample_schedule in stable-diffusion.h
@@ -175,7 +173,6 @@ int gen_image(char *text, char *negativeText, int width, int height, int steps, 
                             -1, //clip_skip
                             cfg_scale, // sfg_scale
                             3.5f,
-			    0, // eta
                             width,
                             height,
                             sample_method, 
