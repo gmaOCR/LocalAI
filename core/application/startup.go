@@ -6,7 +6,6 @@ import (
 
 	"github.com/mudler/LocalAI/core/backend"
 	"github.com/mudler/LocalAI/core/config"
-	"github.com/mudler/LocalAI/core/gallery"
 	"github.com/mudler/LocalAI/core/services"
 	"github.com/mudler/LocalAI/internal"
 	"github.com/mudler/LocalAI/pkg/assets"
@@ -44,10 +43,16 @@ func New(opts ...config.AppOption) (*Application, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to create ModelPath: %q", err)
 	}
-	if options.GeneratedContentDir != "" {
-		err := os.MkdirAll(options.GeneratedContentDir, 0750)
+	if options.ImageDir != "" {
+		err := os.MkdirAll(options.ImageDir, 0750)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create ImageDir: %q", err)
+		}
+	}
+	if options.AudioDir != "" {
+		err := os.MkdirAll(options.AudioDir, 0750)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create AudioDir: %q", err)
 		}
 	}
 	if options.UploadDir != "" {
@@ -57,22 +62,14 @@ func New(opts ...config.AppOption) (*Application, error) {
 		}
 	}
 
-	if err := pkgStartup.InstallModels(options.Galleries, options.BackendGalleries, options.ModelPath, options.BackendsPath, options.EnforcePredownloadScans, options.AutoloadBackendGalleries, nil, options.ModelsURL...); err != nil {
+	if err := pkgStartup.InstallModels(options.Galleries, options.ModelLibraryURL, options.ModelPath, options.EnforcePredownloadScans, nil, options.ModelsURL...); err != nil {
 		log.Error().Err(err).Msg("error installing models")
-	}
-
-	if err := pkgStartup.InstallExternalBackends(options.BackendGalleries, options.BackendsPath, nil, options.ExternalBackends...); err != nil {
-		log.Error().Err(err).Msg("error installing external backends")
 	}
 
 	configLoaderOpts := options.ToConfigLoaderOptions()
 
 	if err := application.BackendLoader().LoadBackendConfigsFromPath(options.ModelPath, configLoaderOpts...); err != nil {
 		log.Error().Err(err).Msg("error loading config files")
-	}
-
-	if err := gallery.RegisterBackends(options.BackendsPath, application.ModelLoader()); err != nil {
-		log.Error().Err(err).Msg("error registering external backends")
 	}
 
 	if options.ConfigFile != "" {
@@ -86,13 +83,13 @@ func New(opts ...config.AppOption) (*Application, error) {
 	}
 
 	if options.PreloadJSONModels != "" {
-		if err := services.ApplyGalleryFromString(options.ModelPath, options.BackendsPath, options.EnforcePredownloadScans, options.AutoloadBackendGalleries, options.Galleries, options.BackendGalleries, options.PreloadJSONModels); err != nil {
+		if err := services.ApplyGalleryFromString(options.ModelPath, options.PreloadJSONModels, options.EnforcePredownloadScans, options.Galleries); err != nil {
 			return nil, err
 		}
 	}
 
 	if options.PreloadModelsFromPath != "" {
-		if err := services.ApplyGalleryFromFile(options.ModelPath, options.BackendsPath, options.EnforcePredownloadScans, options.AutoloadBackendGalleries, options.Galleries, options.BackendGalleries, options.PreloadModelsFromPath); err != nil {
+		if err := services.ApplyGalleryFromFile(options.ModelPath, options.PreloadModelsFromPath, options.EnforcePredownloadScans, options.Galleries); err != nil {
 			return nil, err
 		}
 	}
@@ -146,9 +143,15 @@ func New(opts ...config.AppOption) (*Application, error) {
 		}()
 	}
 
-	if options.LoadToMemory != nil && !options.SingleBackend {
+	if options.LoadToMemory != nil {
 		for _, m := range options.LoadToMemory {
-			cfg, err := application.BackendLoader().LoadBackendConfigFileByNameDefaultOptions(m, options)
+			cfg, err := application.BackendLoader().LoadBackendConfigFileByName(m, options.ModelPath,
+				config.LoadOptionDebug(options.Debug),
+				config.LoadOptionThreads(options.Threads),
+				config.LoadOptionContextSize(options.ContextSize),
+				config.LoadOptionF16(options.F16),
+				config.ModelPath(options.ModelPath),
+			)
 			if err != nil {
 				return nil, err
 			}

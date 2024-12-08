@@ -16,7 +16,7 @@ type Application struct {
 func newApplication(appConfig *config.ApplicationConfig) *Application {
 	return &Application{
 		backendLoader:      config.NewBackendConfigLoader(appConfig.ModelPath),
-		modelLoader:        model.NewModelLoader(appConfig.ModelPath, appConfig.SingleBackend),
+		modelLoader:        model.NewModelLoader(appConfig.ModelPath),
 		applicationConfig:  appConfig,
 		templatesEvaluator: templates.NewEvaluator(appConfig.ModelPath),
 	}
