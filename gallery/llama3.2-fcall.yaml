@@ -13,10 +13,9 @@ config_file: |
         value: ""
     grammar:
       properties_order: "name,arguments"
-      function_arguments_key: "arguments"
   template:
     chat: |
-      <|start_header_id|>system<|end_header_id|>
+      <|begin_of_text|><|start_header_id|>system<|end_header_id|>
       You are a helpful assistant<|eot_id|><|start_header_id|>user<|end_header_id|>
       {{.Input }}
       <|start_header_id|>assistant<|end_header_id|>
