@@ -7,7 +7,6 @@ import (
 
 	"github.com/mudler/LocalAI/core/config"
 	"github.com/mudler/LocalAI/core/gallery"
-	"github.com/mudler/LocalAI/core/system"
 	"github.com/mudler/LocalAI/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
@@ -23,7 +22,7 @@ func (g *GalleryService) modelHandler(op *GalleryOp[gallery.GalleryModel], cl *c
 		utils.DisplayDownloadFunction(fileName, current, total, percentage)
 	}
 
-	err := processModelOperation(op, g.appConfig.ModelPath, g.appConfig.BackendsPath, g.appConfig.EnforcePredownloadScans, g.appConfig.AutoloadBackendGalleries, progressCallback)
+	err := processModelOperation(op, g.appConfig.ModelPath, g.appConfig.EnforcePredownloadScans, progressCallback)
 	if err != nil {
 		return err
 	}
@@ -50,7 +49,7 @@ func (g *GalleryService) modelHandler(op *GalleryOp[gallery.GalleryModel], cl *c
 	return nil
 }
 
-func installModelFromRemoteConfig(modelPath string, req gallery.GalleryModel, downloadStatus func(string, string, string, float64), enforceScan, automaticallyInstallBackend bool, backendGalleries []config.Gallery, backendBasePath string) error {
+func prepareModel(modelPath string, req gallery.GalleryModel, downloadStatus func(string, string, string, float64), enforceScan bool) error {
 	config, err := gallery.GetGalleryConfigFromURL[gallery.ModelConfig](req.URL, modelPath)
 	if err != nil {
 		return err
@@ -58,23 +57,7 @@ func installModelFromRemoteConfig(modelPath string, req gallery.GalleryModel, do
 
 	config.Files = append(config.Files, req.AdditionalFiles...)
 
-	installedModel, err := gallery.InstallModel(modelPath, req.Name, &config, req.Overrides, downloadStatus, enforceScan)
-	if err != nil {
-		return err
-	}
-
-	if automaticallyInstallBackend && installedModel.Backend != "" {
-		systemState, err := system.GetSystemState()
-		if err != nil {
-			return err
-		}
-
-		if err := gallery.InstallBackendFromGallery(backendGalleries, systemState, installedModel.Backend, backendBasePath, downloadStatus, false); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return gallery.InstallModel(modelPath, req.Name, &config, req.Overrides, downloadStatus, enforceScan)
 }
 
 type galleryModel struct {
@@ -82,22 +65,22 @@ type galleryModel struct {
 	ID                   string           `json:"id"`
 }
 
-func processRequests(modelPath, backendBasePath string, enforceScan, automaticallyInstallBackend bool, galleries []config.Gallery, backendGalleries []config.Gallery, requests []galleryModel) error {
+func processRequests(modelPath string, enforceScan bool, galleries []config.Gallery, requests []galleryModel) error {
 	var err error
 	for _, r := range requests {
 		utils.ResetDownloadTimers()
 		if r.ID == "" {
-			err = installModelFromRemoteConfig(modelPath, r.GalleryModel, utils.DisplayDownloadFunction, enforceScan, automaticallyInstallBackend, backendGalleries, backendBasePath)
+			err = prepareModel(modelPath, r.GalleryModel, utils.DisplayDownloadFunction, enforceScan)
 
 		} else {
 			err = gallery.InstallModelFromGallery(
-				galleries, backendGalleries, r.ID, modelPath, backendBasePath, r.GalleryModel, utils.DisplayDownloadFunction, enforceScan, automaticallyInstallBackend)
+				galleries, r.ID, modelPath, r.GalleryModel, utils.DisplayDownloadFunction, enforceScan)
 		}
 	}
 	return err
 }
 
-func ApplyGalleryFromFile(modelPath, backendBasePath string, enforceScan, automaticallyInstallBackend bool, galleries []config.Gallery, backendGalleries []config.Gallery, s string) error {
+func ApplyGalleryFromFile(modelPath, s string, enforceScan bool, galleries []config.Gallery) error {
 	dat, err := os.ReadFile(s)
 	if err != nil {
 		return err
@@ -108,26 +91,24 @@ func ApplyGalleryFromFile(modelPath, backendBasePath string, enforceScan, automa
 		return err
 	}
 
-	return processRequests(modelPath, backendBasePath, enforceScan, automaticallyInstallBackend, galleries, backendGalleries, requests)
+	return processRequests(modelPath, enforceScan, galleries, requests)
 }
 
-func ApplyGalleryFromString(modelPath, backendBasePath string, enforceScan, automaticallyInstallBackend bool, galleries []config.Gallery, backendGalleries []config.Gallery, s string) error {
+func ApplyGalleryFromString(modelPath, s string, enforceScan bool, galleries []config.Gallery) error {
 	var requests []galleryModel
 	err := json.Unmarshal([]byte(s), &requests)
 	if err != nil {
 		return err
 	}
 
-	return processRequests(modelPath, backendBasePath, enforceScan, automaticallyInstallBackend, galleries, backendGalleries, requests)
+	return processRequests(modelPath, enforceScan, galleries, requests)
 }
 
 // processModelOperation handles the installation or deletion of a model
 func processModelOperation(
 	op *GalleryOp[gallery.GalleryModel],
 	modelPath string,
-	backendBasePath string,
 	enforcePredownloadScans bool,
-	automaticallyInstallBackend bool,
 	progressCallback func(string, string, string, float64),
 ) error {
 	// delete a model
@@ -159,7 +140,7 @@ func processModelOperation(
 
 	// if the request contains a gallery name, we apply the gallery from the gallery list
 	if op.GalleryElementName != "" {
-		return gallery.InstallModelFromGallery(op.Galleries, op.BackendGalleries, op.GalleryElementName, modelPath, backendBasePath, op.Req, progressCallback, enforcePredownloadScans, automaticallyInstallBackend)
+		return gallery.InstallModelFromGallery(op.Galleries, op.GalleryElementName, modelPath, op.Req, progressCallback, enforcePredownloadScans)
 		// } else if op.ConfigURL != "" {
 		// 	err := startup.InstallModels(op.Galleries, modelPath, enforcePredownloadScans, progressCallback, op.ConfigURL)
 		// 	if err != nil {
@@ -167,6 +148,6 @@ func processModelOperation(
 		// 	}
 		// 	return cl.Preload(modelPath)
 	} else {
-		return installModelFromRemoteConfig(modelPath, op.Req, progressCallback, enforcePredownloadScans, automaticallyInstallBackend, op.BackendGalleries, backendBasePath)
+		return prepareModel(modelPath, op.Req, progressCallback, enforcePredownloadScans)
 	}
 }

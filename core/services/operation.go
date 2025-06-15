@@ -10,9 +10,8 @@ type GalleryOp[T any] struct {
 	GalleryElementName string
 	Delete             bool
 
-	Req              T
-	Galleries        []config.Gallery
-	BackendGalleries []config.Gallery
+	Req       T
+	Galleries []config.Gallery
 }
 
 type GalleryOpStatus struct {
