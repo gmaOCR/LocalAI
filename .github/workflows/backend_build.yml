@@ -28,6 +28,10 @@ on:
         description: 'Tag latest'
         default: ''
         type: string
+      latest-image:
+        description: 'Tag latest'
+        default: ''
+        type: string
       tag-suffix:
         description: 'Tag suffix'
         default: ''
@@ -149,7 +153,7 @@ jobs:
             type=sha
           flavor: |
             latest=${{ inputs.tag-latest }}
-            suffix=${{ inputs.tag-suffix }},onlatest=true
+            suffix=${{ inputs.tag-suffix }}
 
       - name: Docker meta for PR
         id: meta_pull_request
@@ -164,7 +168,7 @@ jobs:
             type=sha,suffix=${{ github.event.number }}-${{ inputs.backend }}-${{ inputs.build-type }}-${{ inputs.cuda-major-version }}-${{ inputs.cuda-minor-version }}
           flavor: |
             latest=${{ inputs.tag-latest }}
-            suffix=${{ inputs.tag-suffix }},onlatest=true
+            suffix=${{ inputs.tag-suffix }}
 ## End testing image
       - name: Set up QEMU
         uses: docker/setup-qemu-action@master
@@ -228,7 +232,20 @@ jobs:
           tags: ${{ steps.meta_pull_request.outputs.tags }}
           labels: ${{ steps.meta_pull_request.outputs.labels }}
 
+      - name: Cleanup
+        run: |
+          docker builder prune -f
+          docker system prune --force --volumes --all
 
+      - name: Latest tag
+        if: github.event_name != 'pull_request' && inputs.latest-image != '' && github.ref_type == 'tag'
+        run: |
+          docker pull localai/localai-backends:${{ steps.meta.outputs.version }}
+          docker tag localai/localai-backends:${{ steps.meta.outputs.version }} localai/localai-backends:${{ inputs.latest-image }}
+          docker push localai/localai-backends:${{ inputs.latest-image }}
+          docker pull quay.io/go-skynet/local-ai-backends:${{ steps.meta.outputs.version }}
+          docker tag quay.io/go-skynet/local-ai-backends:${{ steps.meta.outputs.version }} quay.io/go-skynet/local-ai-backends:${{ inputs.latest-image }}
+          docker push quay.io/go-skynet/local-ai-backends:${{ inputs.latest-image }}
 
       - name: job summary
         run: |
