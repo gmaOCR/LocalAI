@@ -1,0 +1,11 @@
+backend: diffusers
+diffusers:
+  cuda: true
+  enable_parameters: prompt,negative_prompt,num_inference_steps
+  pipeline_type: StableDiffusionPipeline
+  scheduler_type: k_dpmpp_2m
+f16: true
+name: dreamshaper
+parameters:
+  model: DreamShaper_8_pruned.safetensors
+step: 25
