@@ -8,6 +8,7 @@ import signal
 import sys
 import time
 import os
+import json
 
 from PIL import Image
 import torch
@@ -16,9 +17,11 @@ import backend_pb2
 import backend_pb2_grpc
 
 import grpc
+import io
+import base64
 
 from diffusers import SanaPipeline, StableDiffusion3Pipeline, StableDiffusionXLPipeline, StableDiffusionDepth2ImgPipeline, DPMSolverMultistepScheduler, StableDiffusionPipeline, DiffusionPipeline, \
-    EulerAncestralDiscreteScheduler, FluxPipeline, FluxTransformer2DModel
+    EulerAncestralDiscreteScheduler, FluxPipeline, FluxTransformer2DModel, StableDiffusionInpaintPipeline
 from diffusers import StableDiffusionImg2ImgPipeline, AutoPipelineForText2Image, ControlNetModel, StableVideoDiffusionPipeline, Lumina2Text2ImgPipeline
 from diffusers.pipelines.stable_diffusion import safety_checker
 from diffusers.utils import load_image, export_to_video
@@ -208,6 +211,16 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                 else:
                     self.pipe = StableDiffusionImg2ImgPipeline.from_pretrained(request.Model,
                                                                                torch_dtype=torchType)
+            
+            # START MODIFICATION: Add Inpainting Pipeline
+            elif request.PipelineType == "StableDiffusionInpaintPipeline":
+                if fromSingleFile:
+                    self.pipe = StableDiffusionInpaintPipeline.from_single_file(modelFile,
+                                                                                torch_dtype=torchType)
+                else:
+                    self.pipe = StableDiffusionInpaintPipeline.from_pretrained(request.Model,
+                                                                               torch_dtype=torchType)
+            # END MODIFICATION
 
             elif request.PipelineType == "StableDiffusionDepth2ImgPipeline":
                 self.pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(request.Model,
@@ -427,102 +440,88 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                 curr_layer.weight.data += multiplier * alpha * torch.mm(weight_up, weight_down)
 
     def GenerateImage(self, request, context):
-
         prompt = request.positive_prompt
+        steps = request.step if request.step > 0 else 25
 
-        steps = 1
-
-        if request.step != 0:
-            steps = request.step
-
-        # create a dictionary of values for the parameters
         options = {
+            "prompt": prompt,
             "negative_prompt": request.negative_prompt,
             "num_inference_steps": steps,
         }
 
-        if request.src != "" and not self.controlnet and not self.img2vid:
-            image = Image.open(request.src)
-            options["image"] = image
-        elif self.controlnet and request.src:
-            pose_image = load_image(request.src)
-            options["image"] = pose_image
+        # --- START INPAINTING SUPPORT ---
+        # Tente de charger l'image et le masque depuis un fichier JSON passé dans request.src
+        is_inpainting = False
+        if request.src:
+            try:
+                with open(request.src, 'r') as f:
+                    image_data = json.load(f)
+                
+                if 'image' in image_data and 'mask_image' in image_data:
+                    # Décode l'image principale
+                    decoded_image = base64.b64decode(image_data['image'])
+                    image_pil = Image.open(io.BytesIO(decoded_image))
+                    options["image"] = image_pil
 
-        if CLIPSKIP and self.clip_skip != 0:
-            options["clip_skip"] = self.clip_skip
+                    # Décode le masque
+                    decoded_mask = base64.b64decode(image_data['mask_image'])
+                    mask_pil = Image.open(io.BytesIO(decoded_mask))
+                    options["mask_image"] = mask_pil
+                    
+                    is_inpainting = True
+                    print("Successfully loaded image and mask for inpainting.", file=sys.stderr)
 
-        # Get the keys that we will build the args for our pipe for
-        keys = options.keys()
-
-        if request.EnableParameters != "":
-            keys = [key.strip() for key in request.EnableParameters.split(",")]
-
-        if request.EnableParameters == "none":
-            keys = []
-
-        # create a dictionary of parameters by using the keys from EnableParameters and the values from defaults
-        kwargs = {key: options.get(key) for key in keys if key in options}
-
-        # populate kwargs from self.options.
-        kwargs.update(self.options)
-
-        # Set seed
-        if request.seed > 0:
-            kwargs["generator"] = torch.Generator(device=self.device).manual_seed(
-                request.seed
-            )
-
-        if self.PipelineType == "FluxPipeline":
-            kwargs["max_sequence_length"] = 256
+            except Exception:
+                # Ce n'était pas un fichier JSON pour l'inpainting, on continue normalement
+                pass
+        
+        # Solution de repli pour les requêtes img2img classiques
+        if not is_inpainting and request.src:
+            try:
+                image_pil = Image.open(request.src)
+                options["image"] = image_pil
+                print("Successfully loaded single image from src.", file=sys.stderr)
+            except Exception as e:
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details(f"Failed to load image from src path '{request.src}': {e}")
+                return backend_pb2.Result()
+        # --- END INPAINTING SUPPORT ---
 
         if request.width:
-            kwargs["width"] = request.width
-
+            options["width"] = request.width
         if request.height:
-            kwargs["height"] = request.height
+            options["height"] = request.height
 
-        if self.PipelineType == "FluxTransformer2DModel":
-            kwargs["output_type"] = "pil"
-            kwargs["generator"] = torch.Generator("cpu").manual_seed(0)
+        # Construit les arguments pour le pipeline
+        keys = options.keys()
+        if request.EnableParameters != "" and request.EnableParameters != "none":
+            keys = [key.strip() for key in request.EnableParameters.split(",")]
+        elif request.EnableParameters == "none":
+            keys = []
 
-        if self.img2vid:
-            # Load the conditioning image
-            image = load_image(request.src)
-            image = image.resize((1024, 576))
+        # Crée le dictionnaire de paramètres, en s'assurant de ne pas inclure de valeurs None
+        kwargs = {key: options.get(key) for key in keys if key in options and options.get(key) is not None}
+        kwargs.update(self.options)
 
-            generator = torch.manual_seed(request.seed)
-            frames = self.pipe(image, guidance_scale=self.cfg_scale, decode_chunk_size=CHUNK_SIZE, generator=generator).frames[0]
-            export_to_video(frames, request.dst, fps=FPS)
-            return backend_pb2.Result(message="Media generated successfully", success=True)
+        # Gère la seed
+        if request.seed > 0:
+            kwargs["generator"] = torch.Generator(device=self.device).manual_seed(request.seed)
 
-        if self.txt2vid:
-            video_frames = self.pipe(prompt, guidance_scale=self.cfg_scale, num_inference_steps=steps, num_frames=int(FRAMES)).frames
-            export_to_video(video_frames, request.dst)
-            return backend_pb2.Result(message="Media generated successfully", success=True)
+        print(f"Generating image with kwargs: {list(kwargs.keys())}", file=sys.stderr)
+        
+        try:
+            # Appelle le pipeline avec tous les arguments
+            image = self.pipe(**kwargs).images[0]
+        except Exception as e:
+            traceback.print_exc(file=sys.stderr)
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Failed to generate image: {e}")
+            return backend_pb2.Result()
 
-        print(f"Generating image with {kwargs=}", file=sys.stderr)
-        image = {}
-        if COMPEL:
-            conditioning, pooled = self.compel.build_conditioning_tensor(prompt)
-            kwargs["prompt_embeds"] = conditioning
-            kwargs["pooled_prompt_embeds"] = pooled
-            # pass the kwargs dictionary to the self.pipe method
-            image = self.pipe(
-                guidance_scale=self.cfg_scale,
-                **kwargs
-            ).images[0]
-        else:
-            # pass the kwargs dictionary to the self.pipe method
-            image = self.pipe(
-                prompt,
-                guidance_scale=self.cfg_scale,
-                **kwargs
-            ).images[0]
-
-        # save the result
+        # Sauvegarde l'image
         image.save(request.dst)
 
-        return backend_pb2.Result(message="Media generated", success=True)
+        return backend_pb2.Result(message="Image generated successfully", success=True)
 
 
 def serve(address):
