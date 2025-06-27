@@ -1,0 +1,6 @@
+{
+  "alias": "diffusers",
+  "name": "cuda12-diffusers",
+  "gallery_url": "github:mudler/LocalAI/backend/index.yaml@master",
+  "installed_at": "2025-06-27T19:26:32+02:00"
+}
