@@ -30,7 +30,10 @@ local-ai
 # models/
 test-models/
 test-dir/
-*.gguf
+models/*
+!models/**/*.yaml
+!models/*.yaml
+
 
 release/
 
