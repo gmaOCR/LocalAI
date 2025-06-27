@@ -1,0 +1,10 @@
+name: stable-diffusion-2-inpainting
+backend: diffusers
+parameters:
+  model: stabilityai/stable-diffusion-2-inpainting
+diffusers:
+  # Dis à LocalAI d'utiliser le pipeline que nous venons d'ajouter
+  pipeline_type: StableDiffusionInpaintPipeline
+  # Active les paramètres nécessaires pour l'inpainting
+  enable_parameters: "prompt,negative_prompt,num_inference_steps,image,mask_image"
+cuda: true
