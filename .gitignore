@@ -30,6 +30,7 @@ local-ai
 # models/
 test-models/
 test-dir/
+*.gguf
 
 release/
 

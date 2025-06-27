@@ -449,6 +449,44 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             "num_inference_steps": steps,
         }
 
+        # --- START INPAINTING SUPPORT ---
+        # Tente de charger l'image et le masque depuis un fichier JSON passé dans request.src
+        is_inpainting = False
+        if request.src:
+            try:
+                with open(request.src, 'r') as f:
+                    image_data = json.load(f)
+                
+                if 'image' in image_data and 'mask_image' in image_data:
+                    # Décode l'image principale
+                    decoded_image = base64.b64decode(image_data['image'])
+                    image_pil = Image.open(io.BytesIO(decoded_image))
+                    options["image"] = image_pil
+
+                    # Décode le masque
+                    decoded_mask = base64.b64decode(image_data['mask_image'])
+                    mask_pil = Image.open(io.BytesIO(decoded_mask))
+                    options["mask_image"] = mask_pil
+                    
+                    is_inpainting = True
+                    print("Successfully loaded image and mask for inpainting.", file=sys.stderr)
+
+            except Exception:
+                # Ce n'était pas un fichier JSON pour l'inpainting, on continue normalement
+                pass
+        
+        # Solution de repli pour les requêtes img2img classiques
+        if not is_inpainting and request.src:
+            try:
+                image_pil = Image.open(request.src)
+                options["image"] = image_pil
+                print("Successfully loaded single image from src.", file=sys.stderr)
+            except Exception as e:
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details(f"Failed to load image from src path '{request.src}': {e}")
+                return backend_pb2.Result()
+        # --- END INPAINTING SUPPORT ---
+
         if request.width:
             options["width"] = request.width
         if request.height:

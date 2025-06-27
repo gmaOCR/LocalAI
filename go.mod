@@ -329,3 +329,9 @@ require (
 	howett.net/plist v1.0.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
+
+replace github.com/ggerganov/whisper.cpp => /fork/LocalAI/sources/whisper.cpp
+
+replace github.com/ggerganov/whisper.cpp/bindings/go => /fork/LocalAI/sources/whisper.cpp/bindings/go
+
+replace github.com/mudler/go-piper => /fork/LocalAI/sources/go-piper
