@@ -10,7 +10,7 @@ import time
 import os
 import json
 
-from PIL import Image
+from PIL import Image, ImageFilter
 import torch
 
 import backend_pb2
@@ -458,19 +458,46 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                     image_data = json.load(f)
                 
                 if 'image' in image_data and 'mask_image' in image_data:
+                    # DEBUG : Vérifie les données brutes reçues
+                    mask_b64_length = len(image_data['mask_image'])
+                    print(f"Longueur du base64 du masque reçu: {mask_b64_length}", file=sys.stderr)
+                    
                     # Décode l'image principale
                     decoded_image = base64.b64decode(image_data['image'])
-                    image_pil = Image.open(io.BytesIO(decoded_image))
-                    options["image"] = image_pil
+                    image_pil = Image.open(io.BytesIO(decoded_image)).convert("RGB")
 
                     # Décode le masque
                     decoded_mask = base64.b64decode(image_data['mask_image'])
-                    mask_pil = Image.open(io.BytesIO(decoded_mask))
-                    options["mask_image"] = mask_pil
+                    print(f"Taille des données décodées du masque: {len(decoded_mask)} bytes", file=sys.stderr)
                     
+                    # Sauvegarde le masque brut pour inspection
+                    with open("debug_mask_raw.png", "wb") as f:
+                        f.write(decoded_mask)
+                    
+                    mask_pil = Image.open(io.BytesIO(decoded_mask)).convert("L")
+
+                    # DEBUG : Vérifie le contenu du masque reçu
+                    mask_array = list(mask_pil.getdata())
+                    unique_values = set(mask_array)
+                    print(f"Masque reçu - valeurs uniques: {unique_values}", file=sys.stderr)
+                    print(f"Image size: {image_pil.size}, Mask size: {mask_pil.size}", file=sys.stderr)
+                    
+                    # Vérifie que les dimensions correspondent
+                    if mask_pil.size != image_pil.size:
+                        print(f"ERREUR: Tailles incompatibles - Image: {image_pil.size}, Masque: {mask_pil.size}", file=sys.stderr)
+                        context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                        context.set_details(f"Image and mask must have the same dimensions. Image: {image_pil.size}, Mask: {mask_pil.size}")
+                        return backend_pb2.Result()
+
+                    # DEBUG : Sauvegarde les images reçues pour comparaison
+                    image_pil.save("debug_image_from_localai.png")
+                    mask_pil.save("debug_mask_from_localai.png")
+                    print(f"Prompt reçu: {options['prompt']}", file=sys.stderr)
+
+                    options["image"] = image_pil
+                    options["mask_image"] = mask_pil
                     is_inpainting = True
                     print("Successfully loaded image and mask for inpainting.", file=sys.stderr)
-
             except Exception:
                 # Ce n'était pas un fichier JSON pour l'inpainting, on continue normalement
                 pass
