@@ -471,8 +471,8 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                     print(f"Taille des données décodées du masque: {len(decoded_mask)} bytes", file=sys.stderr)
                     
                     # Sauvegarde le masque brut pour inspection
-                    with open("debug_mask_raw.png", "wb") as f:
-                        f.write(decoded_mask)
+                    # with open("debug_mask_raw.png", "wb") as f:
+                    #     f.write(decoded_mask)
                     
                     mask_pil = Image.open(io.BytesIO(decoded_mask)).convert("L")
 
@@ -490,8 +490,8 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                         return backend_pb2.Result()
 
                     # DEBUG : Sauvegarde les images reçues pour comparaison
-                    image_pil.save("debug_image_from_localai.png")
-                    mask_pil.save("debug_mask_from_localai.png")
+                    # image_pil.save("debug_image_from_localai.png")
+                    # mask_pil.save("debug_mask_from_localai.png")
                     print(f"Prompt reçu: {options['prompt']}", file=sys.stderr)
 
                     options["image"] = image_pil
