@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "views/partials/head" .}}
+<script defer src="static/inpainting.js"></script>
+
+<body class="bg-gradient-to-br from-gray-900 to-gray-950 text-gray-200">
+<div class="flex flex-col min-h-screen">
+   
+    {{template "views/partials/navbar" .}}
+    <div class="container mx-auto px-4 py-8 flex-grow" x-data="{ mode: 'upload' }">
+    
+        <!-- Hero Section -->
+        <div class="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-2xl shadow-xl p-8 mb-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">
+                        AI Inpainting {{ if .Model }} with {{.Model}} {{ end }}
+                    </span>
+                </h1>
+                <p class="text-xl text-gray-300 mb-6">Edit and enhance your images with intelligent inpainting</p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="https://localai.io/features/image-generation/" target="_blank" 
+                       class="group flex items-center bg-purple-600 hover:bg-purple-700 text-white py-2 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg">
+                        <i class="fas fa-book-reader mr-2"></i>
+                        <span>Documentation</span>
+                        <i class="fas fa-arrow-right opacity-0 group-hover:opacity-100 group-hover:translate-x-2 ml-2 transition-all duration-300"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+      
+        <!-- Model Selection -->
+        <div class="bg-gray-800/90 border border-gray-700/50 rounded-xl p-5 mb-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="text-lg font-medium text-purple-400 mr-4">
+                    <i class="fas fa-magic mr-2"></i>Select Inpainting Model:
+                </div>
+                <div class="flex-grow">
+                    <select x-data="{ link : '' }" x-model="link" x-init="$watch('link', value => window.location = link)" 
+                        id="model-select"
+                        class="bg-gray-900 text-white border border-gray-700 focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50 rounded-lg shadow-sm p-2.5 pr-10 appearance-none w-full max-w-md transition-colors duration-200"
+                    >	
+                        <option value="" disabled class="text-gray-400">Select an inpainting model</option>
+                        {{ $model:=.Model}}
+                        {{ range .ModelsConfig }}
+                          {{ $cfg := . }}
+                          {{ if eq $cfg.Backend "diffusers" }}
+                            <option value="inpainting/{{$cfg.Name}}" {{ if eq $cfg.Name $model }} selected {{end}} class="bg-gray-800 text-white">{{$cfg.Name}}</option>
+                          {{ end }}
+                        {{ end }}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mode Selection Tabs -->
+        <div class="bg-gray-800/90 border border-gray-700/50 rounded-xl p-6 mb-6 shadow-lg">
+            <div class="flex space-x-4 mb-6">
+                <button @click="mode = 'upload'" 
+                        :class="mode === 'upload' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                        class="px-6 py-3 rounded-lg transition-all duration-200 font-medium">
+                    <i class="fas fa-upload mr-2"></i>Upload & Mask
+                </button>
+                <button @click="mode = 'draw'" 
+                        :class="mode === 'draw' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                        class="px-6 py-3 rounded-lg transition-all duration-200 font-medium">
+                    <i class="fas fa-paint-brush mr-2"></i>Draw Mask
+                </button>
+            </div>
+            
+            <!-- Upload Mode -->
+            <div x-show="mode === 'upload'" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Original Image Upload -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-white">Original Image</h3>
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors duration-200">
+                            <input type="file" id="original-image" accept="image/*" class="hidden">
+                            <label for="original-image" class="cursor-pointer">
+                                <div id="original-preview" class="hidden">
+                                    <img id="original-img" class="max-w-full h-auto rounded-lg mx-auto">
+                                </div>
+                                <div id="original-placeholder" class="space-y-4">
+                                    <i class="fas fa-image text-4xl text-gray-400"></i>
+                                    <p class="text-gray-400">Click to upload original image</p>
+                                    <p class="text-sm text-gray-500">PNG, JPG, JPEG up to 10MB</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Mask Image Upload -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-white">Mask Image</h3>
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors duration-200">
+                            <input type="file" id="mask-image" accept="image/*" class="hidden">
+                            <label for="mask-image" class="cursor-pointer">
+                                <div id="mask-preview" class="hidden">
+                                    <img id="mask-img" class="max-w-full h-auto rounded-lg mx-auto">
+                                </div>
+                                <div id="mask-placeholder" class="space-y-4">
+                                    <i class="fas fa-mask text-4xl text-gray-400"></i>
+                                    <p class="text-gray-400">Click to upload mask image</p>
+                                    <p class="text-sm text-gray-500">White areas will be inpainted</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Draw Mode -->
+            <div x-show="mode === 'draw'" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Image Upload for Drawing -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-white">Upload Image to Edit</h3>
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors duration-200">
+                            <input type="file" id="draw-image" accept="image/*" class="hidden">
+                            <label for="draw-image" class="cursor-pointer">
+                                <div id="draw-preview" class="hidden">
+                                    <img id="draw-img" class="max-w-full h-auto rounded-lg mx-auto">
+                                </div>
+                                <div id="draw-placeholder" class="space-y-4">
+                                    <i class="fas fa-image text-4xl text-gray-400"></i>
+                                    <p class="text-gray-400">Click to upload image for editing</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas for Drawing Mask -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-white">Draw Mask</h3>
+                            <div class="flex space-x-2">
+                                <button id="clear-canvas" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                                    <i class="fas fa-eraser mr-2"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-blue-900/30 border border-blue-600/50 rounded-lg p-3 text-sm text-blue-200">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>Instructions:</strong> Draw in WHITE on the black canvas to mark areas you want to inpaint. White areas will be replaced, black areas will be preserved.
+                        </div>
+                        <div class="border border-gray-600 rounded-lg p-4 bg-gray-900">
+                            <canvas id="mask-canvas" class="max-w-full border border-gray-700 rounded cursor-crosshair"></canvas>
+                            <div class="mt-4 flex items-center space-x-4">
+                                <label class="text-sm text-gray-300">Brush Size:</label>
+                                <input type="range" id="brush-size" min="5" max="50" value="20" class="flex-1">
+                                <span id="brush-size-value" class="text-sm text-gray-300">20px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Prompt and Generation -->
+        <div class="bg-gray-800/90 border border-gray-700/50 rounded-xl p-6 shadow-lg backdrop-blur-sm">
+            <h2 class="text-2xl font-bold text-white mb-6">Inpainting Prompt</h2>
+            
+            <div class="space-y-4">
+                <input id="image-model" type="hidden" value="{{.Model}}">
+                
+                <!-- Positive Prompt -->
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Describe what should be in the masked area:</label>
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 top-8">
+                        <i class="fas fa-magic text-purple-400"></i>
+                    </div>
+                    <textarea
+                        id="positive-prompt"
+                        placeholder="A beautiful landscape with mountains and trees..."
+                        rows="3"
+                        class="form-control block w-full pl-12 pr-12 py-4 text-lg font-normal text-gray-300 bg-gray-900/80 bg-clip-padding border border-gray-700/70 rounded-lg transition ease-in-out focus:text-gray-200 focus:bg-gray-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 focus:outline-none resize-none"
+                        required
+                    ></textarea>
+                </div>
+                
+                <!-- Negative Prompt -->
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">What to avoid (optional):</label>
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 top-8">
+                        <i class="fas fa-ban text-red-400"></i>
+                    </div>
+                    <textarea
+                        id="negative-prompt"
+                        placeholder="blurry, low quality, distorted..."
+                        rows="2"
+                        class="form-control block w-full pl-12 pr-12 py-3 text-base font-normal text-gray-300 bg-gray-900/80 bg-clip-padding border border-gray-700/70 rounded-lg transition ease-in-out focus:text-gray-200 focus:bg-gray-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 focus:outline-none resize-none"
+                    ></textarea>
+                </div>
+                
+                <!-- Generation Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Steps:</label>
+                        <input type="number" id="steps" value="20" min="1" max="100" 
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Guidance Scale:</label>
+                        <input type="number" id="guidance-scale" value="7.5" min="1" max="20" step="0.5" 
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Strength:</label>
+                        <input type="number" id="strength" value="0.8" min="0.1" max="1" step="0.1" 
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                </div>
+                
+                <!-- Generate Button -->
+                <div class="flex justify-center pt-4">
+                    <button id="generate-btn" 
+                            class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <span id="generate-text">
+                            <i class="fas fa-magic mr-2"></i>Generate Inpainting
+                        </span>
+                        <span id="generate-loader" class="hidden">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Generating...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-section" class="bg-gray-800/90 border border-gray-700/50 rounded-xl p-6 shadow-lg backdrop-blur-sm mt-6 hidden">
+            <h3 class="text-2xl font-bold text-white mb-6">Result</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-300 mb-3">Original</h4>
+                    <div id="original-result" class="bg-gray-900 border border-gray-700 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
+                        <p class="text-gray-500">Original image will appear here</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-300 mb-3">Inpainted</h4>
+                    <div id="inpainted-result" class="bg-gray-900 border border-gray-700 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
+                        <p class="text-gray-500">Inpainted result will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{template "views/partials/footer" .}}
+</div>
+
+</body>
+</html>

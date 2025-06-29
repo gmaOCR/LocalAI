@@ -260,4 +260,57 @@ func RegisterUIRoutes(app *fiber.App,
 		// Render index
 		return c.Render("views/tts", summary)
 	})
+
+	app.Get("/inpainting/:model", func(c *fiber.Ctx) error {
+		backendConfigs := cl.GetAllBackendConfigs()
+		modelsWithoutConfig, _ := services.ListModels(cl, ml, config.NoFilterFn, services.LOOSE_ONLY)
+
+		summary := fiber.Map{
+			"Title":               "LocalAI - AI Inpainting with " + c.Params("model"),
+			"BaseURL":             utils.BaseURL(c),
+			"ModelsConfig":        backendConfigs,
+			"ModelsWithoutConfig": modelsWithoutConfig,
+			"Model":               c.Params("model"),
+			"Version":             internal.PrintableVersion(),
+			"IsP2PEnabled":        p2p.IsP2PEnabled(),
+		}
+
+		// Render inpainting page
+		return c.Render("views/inpainting", summary)
+	})
+
+	app.Get("/inpainting/", func(c *fiber.Ctx) error {
+		backendConfigs := cl.GetAllBackendConfigs()
+		modelsWithoutConfig, _ := services.ListModels(cl, ml, config.NoFilterFn, services.LOOSE_ONLY)
+
+		if len(backendConfigs)+len(modelsWithoutConfig) == 0 {
+			// If no model is available redirect to the index which suggests how to install models
+			return c.Redirect(utils.BaseURL(c))
+		}
+
+		modelThatCanBeUsed := ""
+		title := "LocalAI - AI Inpainting"
+
+		// Look specifically for diffusers backend models that support inpainting
+		for _, b := range backendConfigs {
+			if b.Backend == "diffusers" {
+				modelThatCanBeUsed = b.Name
+				title = "LocalAI - AI Inpainting with " + modelThatCanBeUsed
+				break
+			}
+		}
+
+		summary := fiber.Map{
+			"Title":               title,
+			"BaseURL":             utils.BaseURL(c),
+			"ModelsConfig":        backendConfigs,
+			"ModelsWithoutConfig": modelsWithoutConfig,
+			"Model":               modelThatCanBeUsed,
+			"Version":             internal.PrintableVersion(),
+			"IsP2PEnabled":        p2p.IsP2PEnabled(),
+		}
+
+		// Render inpainting page
+		return c.Render("views/inpainting", summary)
+	})
 }
