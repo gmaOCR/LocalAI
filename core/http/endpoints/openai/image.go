@@ -80,48 +80,77 @@ func ImageEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appCon
 		}
 
 		src := ""
-		if input.File != "" {
+		var fileData []byte
+		var err error
 
-			fileData := []byte{}
-			var err error
+		if input.File != "" {
 			// check if input.File is an URL, if so download it and save it
 			// to a temporary file
-			if strings.HasPrefix(input.File, "http://") || strings.HasPrefix(input.File, "https://") {
-				out, err := downloadFile(input.File)
-				if err != nil {
-					return fmt.Errorf("failed downloading file:%w", err)
-				}
-				defer os.RemoveAll(out)
-
-				fileData, err = os.ReadFile(out)
-				if err != nil {
-					return fmt.Errorf("failed reading file:%w", err)
-				}
-
-			} else {
-				// base 64 decode the file and write it somewhere
-				// that we will cleanup
-				fileData, err = base64.StdEncoding.DecodeString(input.File)
+			if strings.HasPrefix(input.File, "http") {
+				log.Debug().Msgf("Downloading %s", input.File)
+				src, err = downloadFile(input.File)
 				if err != nil {
 					return err
 				}
-			}
+				log.Debug().Msgf("Downloaded %s to %s", input.File, src)
+				defer os.RemoveAll(src)
+			} else {
+				// base 64 decode the file and write it somewhere
+				// that we will cleanup
 
-			// Create a temporary file
-			outputFile, err := os.CreateTemp(appConfig.GeneratedContentDir, "b64")
-			if err != nil {
-				return err
+				// First, try to decode as JSON for inpainting data
+				var inpaintingData map[string]interface{}
+				decodedData, err := base64.StdEncoding.DecodeString(input.File)
+				if err == nil {
+					if err := json.Unmarshal(decodedData, &inpaintingData); err == nil {
+						// It's JSON inpainting data, save it as a JSON file
+						log.Debug().Msgf("Detected inpainting data")
+
+						// Create a temporary JSON file
+						outputFile, err := os.CreateTemp(appConfig.GeneratedContentDir, "inpainting_*.json")
+						if err != nil {
+							return err
+						}
+
+						// Write the JSON data
+						if err := json.NewEncoder(outputFile).Encode(inpaintingData); err != nil {
+							outputFile.Close()
+							return err
+						}
+						outputFile.Close()
+						src = outputFile.Name()
+						defer os.RemoveAll(src)
+					} else {
+						// It's regular base64 image data
+						fileData = decodedData
+					}
+				} else {
+					// If base64 decode fails, try as regular image data
+					fileData, err = base64.StdEncoding.DecodeString(input.File)
+					if err != nil {
+						return err
+					}
+				}
+
+				// If we have regular image data, create a temporary image file
+				if fileData != nil && src == "" {
+					// Create a temporary file
+					outputFile, err := os.CreateTemp(appConfig.GeneratedContentDir, "b64")
+					if err != nil {
+						return err
+					}
+					// write the base64 result
+					writer := bufio.NewWriter(outputFile)
+					_, err = writer.Write(fileData)
+					if err != nil {
+						outputFile.Close()
+						return err
+					}
+					outputFile.Close()
+					src = outputFile.Name()
+					defer os.RemoveAll(src)
+				}
 			}
-			// write the base64 result
-			writer := bufio.NewWriter(outputFile)
-			_, err = writer.Write(fileData)
-			if err != nil {
-				outputFile.Close()
-				return err
-			}
-			outputFile.Close()
-			src = outputFile.Name()
-			defer os.RemoveAll(src)
 		}
 
 		log.Debug().Msgf("Parameter Config: %+v", config)
