@@ -189,9 +189,48 @@ class InpaintingManager {
         // Get mask image
         let maskImageData;
         
-        // Check which mode is active by looking for active tab button
-        const uploadTab = document.querySelector('button[x-text*="Upload"]');
-        const isUploadMode = uploadTab && uploadTab.classList.contains('bg-purple-600');
+        // Check which mode is active by looking at the Alpine.js data
+        // Alpine.js stores the mode in a data attribute accessible via x-data
+        let isUploadMode = false;
+        
+        // Try multiple methods to detect the current mode
+        const container = document.querySelector('[x-data*="mode"]');
+        if (container && window.Alpine) {
+            // Method 1: Use Alpine.js data directly if available
+            try {
+                const alpineData = Alpine.$data(container);
+                if (alpineData && alpineData.mode) {
+                    isUploadMode = alpineData.mode === 'upload';
+                    console.log('Mode detected via Alpine.js:', alpineData.mode);
+                }
+            } catch (e) {
+                console.log('Alpine.js data access failed:', e);
+            }
+        }
+        
+        // Method 2: Fallback to button class detection
+        if (container && !isUploadMode) {
+            const uploadTab = Array.from(document.querySelectorAll('button')).find(btn => 
+                btn.textContent.includes('Upload & Mask')
+            );
+            isUploadMode = uploadTab && uploadTab.classList.contains('bg-purple-600');
+            console.log('Mode detected via button classes:', isUploadMode ? 'upload' : 'draw');
+        }
+        
+        // Method 3: Ultimate fallback - check which sections are visible
+        if (!isUploadMode) {
+            const uploadSection = document.querySelector('[x-show="mode === \'upload\'"]');
+            const drawSection = document.querySelector('[x-show="mode === \'draw\'"]');
+            
+            if (uploadSection && drawSection) {
+                const uploadVisible = !uploadSection.style.display || uploadSection.style.display !== 'none';
+                const drawVisible = !drawSection.style.display || drawSection.style.display !== 'none';
+                isUploadMode = uploadVisible && !drawVisible;
+                console.log('Mode detected via section visibility - upload visible:', uploadVisible, 'draw visible:', drawVisible);
+            }
+        }
+        
+        console.log('Final mode determination: isUploadMode =', isUploadMode);
         
         let maskWidth, maskHeight;
         
