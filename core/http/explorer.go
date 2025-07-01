@@ -14,7 +14,7 @@ import (
 func Explorer(db *explorer.Database) *fiber.App {
 
 	fiberCfg := fiber.Config{
-		Views: renderEngine(),
+		Views: renderEngine(true), // Use the debug mode for development, which allows for live reloading of templates
 		// We disable the Fiber startup message as it does not conform to structured logging.
 		// We register a startup log line with connection information in the OnListen hook to keep things user friendly though
 		DisableStartupMessage: false,
