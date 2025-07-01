@@ -54,7 +54,7 @@ var embedDirStatic embed.FS
 func API(application *application.Application) (*fiber.App, error) {
 
 	fiberCfg := fiber.Config{
-		Views:     renderEngine(),
+		Views:     renderEngine(application.ApplicationConfig().Debug),
 		BodyLimit: application.ApplicationConfig().UploadLimitMB * 1024 * 1024, // this is the default limit of 4MB
 		// We disable the Fiber startup message as it does not conform to structured logging.
 		// We register a startup log line with connection information in the OnListen hook to keep things user friendly though
@@ -151,19 +151,38 @@ func API(application *application.Application) (*fiber.App, error) {
 		return nil, fmt.Errorf("failed to create key auth config: %w", err)
 	}
 
-	httpFS := http.FS(embedDirStatic)
+	// Mode développement : utilise les fichiers du disque au lieu de l'embed
+	var httpFS http.FileSystem
+	if application.ApplicationConfig().Debug {
+		log.Info().Msg("Mode développement : utilisation des fichiers static externes")
+		httpFS = http.Dir("./core/http/static")
 
-	router.Use(favicon.New(favicon.Config{
-		URL:        "/favicon.svg",
-		FileSystem: httpFS,
-		File:       "static/favicon.svg",
-	}))
+		router.Use(favicon.New(favicon.Config{
+			URL:        "/favicon.svg",
+			FileSystem: httpFS,
+			File:       "favicon.svg",
+		}))
 
-	router.Use("/static", filesystem.New(filesystem.Config{
-		Root:       httpFS,
-		PathPrefix: "static",
-		Browse:     true,
-	}))
+		router.Use("/static", filesystem.New(filesystem.Config{
+			Root:       httpFS,
+			PathPrefix: "",
+			Browse:     true,
+		}))
+	} else {
+		httpFS = http.FS(embedDirStatic)
+
+		router.Use(favicon.New(favicon.Config{
+			URL:        "/favicon.svg",
+			FileSystem: httpFS,
+			File:       "static/favicon.svg",
+		}))
+
+		router.Use("/static", filesystem.New(filesystem.Config{
+			Root:       httpFS,
+			PathPrefix: "static",
+			Browse:     true,
+		}))
+	}
 
 	if application.ApplicationConfig().GeneratedContentDir != "" {
 		os.MkdirAll(application.ApplicationConfig().GeneratedContentDir, 0750)

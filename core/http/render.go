@@ -33,8 +33,18 @@ func notFoundHandler(c *fiber.Ctx) error {
 	}
 }
 
-func renderEngine() *fiberhtml.Engine {
-	engine := fiberhtml.NewFileSystem(http.FS(viewsfs), ".html")
+func renderEngine(debug bool) *fiberhtml.Engine {
+	var engine *fiberhtml.Engine
+
+	if debug {
+		// Mode développement : utilise les fichiers du disque
+		// On créé une structure qui simule l'embedded FS avec le dossier views/
+		engine = fiberhtml.New("./core/http/", ".html")
+	} else {
+		// Mode production : utilise les fichiers embedded
+		engine = fiberhtml.NewFileSystem(http.FS(viewsfs), ".html")
+	}
+
 	engine.AddFuncMap(sprig.FuncMap())
 	engine.AddFunc("MDToHTML", markDowner)
 	return engine
