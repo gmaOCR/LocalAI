@@ -196,19 +196,51 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Steps:</label>
-                        <input type="number" id="steps" value="20" min="1" max="100" 
+                        <input type="number" id="steps" value="25" min="1" max="100" 
                                class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Guidance Scale:</label>
-                        <input type="number" id="guidance-scale" value="7.5" min="1" max="20" step="0.5" 
+                        <input type="number" id="guidance-scale" value="7.5" min="1" max="20" step="0.1" 
                                class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Strength:</label>
-                        <input type="number" id="strength" value="0.8" min="0.1" max="1" step="0.1" 
+                        <input type="number" id="strength" value="1.0" min="0.1" max="1" step="0.1" 
                                class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Seed (optionnel):</label>
+                        <input type="number" id="seed" placeholder="Random" min="0" 
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Width:</label>
+                        <input type="number" id="width" value="512" min="64" max="2048" step="8"
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Height:</label>
+                        <input type="number" id="height" value="512" min="64" max="2048" step="8"
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Eta (optionnel):</label>
+                        <input type="number" id="eta" placeholder="auto" step="0.01"
+                               class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Output Type:</label>
+                        <select id="output-type" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50">
+                            <option value="pil">PIL</option>
+                            <option value="np">Numpy</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Conseils prompt et cohérence -->
+                <div class="mt-4 bg-blue-900/30 border border-blue-600/50 rounded-lg p-3 text-sm text-blue-200">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Conseil :</strong> Pour obtenir des résultats cohérents (ex : un chat avec un œil vert et un œil bleu), soyez précis dans votre prompt, utilisez la case "What to avoid" pour exclure les artefacts (ex : "blue fur, two blue eyes") et essayez différents seeds ou augmentez le guidance scale. Parfois, il faut plusieurs essais pour obtenir un résultat réaliste.
                 </div>
                 
                 <!-- Generate Button -->
