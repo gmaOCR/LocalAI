@@ -426,6 +426,47 @@ class InpaintingManager {
     }
 }
 
+// Ajout d'une fonction utilitaire pour récupérer les paramètres exposés du modèle
+async function fetchModelParameters(modelName) {
+    // Cette fonction suppose que la config YAML est exposée via une API ou un mapping JS
+    // Ici, on simule avec un mapping statique pour l'exemple
+    const modelParams = {
+        'stable-diffusion-2-inpainting': [
+            'prompt','negative_prompt','num_inference_steps','guidance_scale','strength','seed','image','mask_image','width','height','eta','output_type'
+        ],
+        'dreamshaper-8-inpainting': [
+            'prompt','negative_prompt','num_inference_steps','guidance_scale','strength','scheduler_type','seed','image','mask_image','width','height','eta','output_type','size','clip_skip'
+        ]
+    };
+    // Retourne la liste ou tout si inconnu
+    return modelParams[modelName] || Object.values(document.querySelectorAll('[data-param]')).map(e=>e.getAttribute('data-param'));
+}
+
+function updateParameterFieldsVisibility(params) {
+    document.querySelectorAll('[data-param]').forEach(el => {
+        if (params.includes(el.getAttribute('data-param'))) {
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+        }
+    });
+}
+
+// Hook sur le selecteur de modèle
+window.addEventListener('DOMContentLoaded', () => {
+    const modelInput = document.getElementById('image-model');
+    if (modelInput) {
+        fetchModelParameters(modelInput.value).then(updateParameterFieldsVisibility);
+    }
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+        modelSelect.addEventListener('change', (e) => {
+            const modelName = e.target.value.replace('inpainting/','');
+            fetchModelParameters(modelName).then(updateParameterFieldsVisibility);
+        });
+    }
+});
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new InpaintingManager();

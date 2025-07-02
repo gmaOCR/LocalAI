@@ -1,11 +1,23 @@
 backend: diffusers
 diffusers:
   cuda: true
-  enable_parameters: prompt,negative_prompt,num_inference_steps
-  pipeline_type: StableDiffusionPipeline
+  enable_parameters: "prompt,negative_prompt,num_inference_steps,guidance_scale,strength,scheduler_type,seed,image,mask_image,width,height,eta,output_type,size,clip_skip"
+  pipeline_type: StableDiffusionInpaintPipeline
   scheduler_type: k_dpmpp_2m
 f16: true
-name: dreamshaper
+name: dreamshaper-8-inpainting
 parameters:
-  model: DreamShaper_8_pruned.safetensors
+  model: Lykon/dreamshaper-8-inpainting
+  prompt: ''
+  negative_prompt: ''
+  num_inference_steps: 25
+  guidance_scale: 7.5
+  strength: 1.0
+  seed: null
+  image: null
+  mask_image: null
+  width: 512
+  height: 512
+  eta: null
+  output_type: 'pil'
 step: 25
