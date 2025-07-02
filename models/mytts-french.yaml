@@ -1,0 +1,7 @@
+name: mytts-french
+backend: mytts
+parameters:
+  model: mytts-custom-french
+tts:
+  voice: "french"
+  language: "fr"
