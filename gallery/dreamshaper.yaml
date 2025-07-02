@@ -1,5 +1,5 @@
 ---
-name: "dreamshaper"
+name: "dreamshaper-8-inpainting"
 
 config_file: |
   backend: diffusers
@@ -7,7 +7,7 @@ config_file: |
   f16: true
 
   diffusers:
-    pipeline_type: StableDiffusionPipeline
+    pipeline_type: StableDiffusionInpaintPipeline
     cuda: true
-    enable_parameters: "negative_prompt,num_inference_steps"
+    enable_parameters: "prompt,negative_prompt,num_inference_steps,guidance_scale,scheduler_type,seed,image,mask_image,size,clip_skip"
     scheduler_type: "k_dpmpp_2m"
