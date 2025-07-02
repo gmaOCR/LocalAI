@@ -1,0 +1,14 @@
+description: |
+  Silero VAD - pre-trained enterprise-grade Voice Activity Detector.
+icon: https://github.com/snakers4/silero-models/raw/master/files/silero_logo.jpg
+license: ""
+urls:
+- https://github.com/snakers4/silero-vad
+- https://huggingface.co/onnx-community/silero-vad
+name: virtual
+config_file: ""
+files:
+- filename: silero-vad.onnx
+  sha256: a4a068cd6cf1ea8355b84327595838ca748ec29a25bc91fc82e6c299ccdc5808
+  uri: https://huggingface.co/onnx-community/silero-vad/resolve/main/onnx/model.onnx
+prompt_templates: []
