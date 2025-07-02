@@ -1,0 +1,6 @@
+{
+  "alias": "faster-whisper",
+  "name": "cuda12-faster-whisper-development",
+  "gallery_url": "github:mudler/LocalAI/backend/index.yaml@master",
+  "installed_at": "2025-07-02T16:23:00+02:00"
+}
