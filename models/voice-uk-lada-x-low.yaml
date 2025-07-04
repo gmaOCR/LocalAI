@@ -1,0 +1,4 @@
+backend: piper
+name: voice-uk-lada-x-low
+parameters:
+  model: uk-lada-x-low.onnx
