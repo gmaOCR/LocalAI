@@ -1,0 +1,4 @@
+backend: whisper
+name: whisper-small-q5_1
+parameters:
+  model: ggml-model-whisper-small-q5_1.bin

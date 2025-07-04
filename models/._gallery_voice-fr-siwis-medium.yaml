@@ -1,0 +1,14 @@
+description: |
+  A fast, local neural text to speech system that sounds great and is optimized for the Raspberry Pi 4. Piper is used in a variety of [projects](https://github.com/rhasspy/piper#people-using-piper).
+icon: https://github.com/rhasspy/piper/raw/master/etc/logo.png
+license: mit
+urls:
+- https://github.com/rhasspy/piper
+name: ""
+config_file: |
+  backend: piper
+files:
+- filename: voice-fr-siwis-medium.tar.gz
+  sha256: 0c9ecdf9ecac6de4a46be85a162bffe0db7145bd3a4175831cea6cab4b41eefd
+  uri: https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-fr-siwis-medium.tar.gz
+prompt_templates: []
