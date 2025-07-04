@@ -1,7 +1,0 @@
-name: mytts-english  
-backend: mytts
-parameters:
-  model: mytts-custom-english
-tts:
-  voice: "english"
-  language: "en"
