@@ -1,6 +1,8 @@
 package localai
 
 import (
+	"fork/LocalAI/patch"
+
 	"github.com/mudler/LocalAI/core/backend"
 	"github.com/mudler/LocalAI/core/config"
 	"github.com/mudler/LocalAI/core/http/middleware"
@@ -51,6 +53,10 @@ func TTSEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfi
 		if input.Voice != "" {
 			cfg.Voice = input.Voice
 		}
+
+		// --- Patch langue TTS ---
+		input.Input = patch.ApplyTTSLanguageFilter(input.Input, cfg.Language)
+		// --- Fin patch ---
 
 		filePath, _, err := backend.ModelTTS(input.Input, cfg.Voice, cfg.Language, ml, appConfig, *cfg)
 		if err != nil {

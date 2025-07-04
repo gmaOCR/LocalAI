@@ -6,3 +6,4 @@ parameters:
 tts:
   backend: piper
   voice: "default"
+  language: "fr"
