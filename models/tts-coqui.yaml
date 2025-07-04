@@ -1,0 +1,4 @@
+name: tts-coqui
+backend: coqui
+parameters:
+  model: tts_models/en/ljspeech/glow-tts

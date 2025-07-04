@@ -1,0 +1,15 @@
+description: |
+  Port of OpenAI's Whisper model in C/C++
+icon: https://avatars.githubusercontent.com/u/14957082
+license: MIT
+urls:
+- https://github.com/ggerganov/whisper.cpp
+- https://huggingface.co/ggerganov/whisper.cpp
+name: whisper-base
+config_file: |
+  backend: whisper
+files:
+- filename: ggml-model-whisper-medium-q5_0.bin
+  sha256: 19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f
+  uri: https://ggml.ggerganov.com/ggml-model-whisper-medium-q5_0.bin
+prompt_templates: []

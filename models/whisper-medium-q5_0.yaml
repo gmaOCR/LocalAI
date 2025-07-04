@@ -1,0 +1,4 @@
+backend: whisper
+name: whisper-medium-q5_0
+parameters:
+  model: ggml-model-whisper-medium-q5_0.bin
