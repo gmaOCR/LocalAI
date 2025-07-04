@@ -1,0 +1,14 @@
+backend: mytts
+name: mytts-francais
+parameters:
+  model: mytts-model
+  # Configuration du moteur TTS
+  # Options disponibles :
+  # - engine:pyttsx3 (TTS hors ligne, par défaut)
+  # - engine:gtts (Google TTS, nécessite Internet)  
+  # - engine:espeak (fallback système)
+  # - voice:fr (voix française)
+  # - rate:150 (vitesse de parole)
+tts:
+  voice: fr
+  language: fr
