@@ -1,4 +1,0 @@
-backend: parler-tts
-name: parler-tts-mini-v0.1
-parameters:
-  model: parler-tts/parler_tts_mini_v0.1
