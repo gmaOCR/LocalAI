@@ -18851,7 +18851,7 @@
   name: voice-fr-siwis-medium
   overrides:
     parameters:
-      model: voice-fr-siwis-medium
+      model: voice-fr-siwis-medium.onnx
   files:
     - filename: voice-fr-siwis-medium.tar.gz
       uri: https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-fr-siwis-medium.tar.gz
