@@ -61,3 +61,6 @@ docs/static/gallery.html
 
 # per-developer customization files for the development container
 .devcontainer/customization/*
+
+local-ai
+.github/instructions/greg.instructions.md

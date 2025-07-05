@@ -1,0 +1,4 @@
+backend: piper
+name: voice-fr-siwis-medium
+parameters:
+  model: fr-siwis-medium.onnx
