@@ -10,6 +10,8 @@ import (
 	"github.com/mudler/LocalAI/core/schema"
 	"github.com/rs/zerolog/log"
 
+	"github.com/mudler/LocalAI/patch"
+
 	"github.com/mudler/LocalAI/pkg/utils"
 )
 
@@ -53,7 +55,7 @@ func TTSEndpoint(cl *config.BackendConfigLoader, ml *model.ModelLoader, appConfi
 		}
 
 		// --- Patch langue TTS ---
-		// input.Input = patch.ApplyTTSLanguageFilter(input.Input, cfg.Language)
+		input.Input = patch.ApplyTTSLanguageFilter(input.Input, cfg.Language)
 		// --- Fin patch ---
 
 		filePath, _, err := backend.ModelTTS(input.Input, cfg.Voice, cfg.Language, ml, appConfig, *cfg)
