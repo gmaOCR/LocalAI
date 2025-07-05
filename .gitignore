@@ -64,3 +64,4 @@ docs/static/gallery.html
 .devcontainer/customization/*
 
 backends/
+local-ai
