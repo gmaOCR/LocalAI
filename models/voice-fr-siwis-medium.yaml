@@ -1,8 +1,7 @@
 backend: piper
 name: voice-fr-siwis-medium
 parameters:
-  model: fr-siwis-medium.onnx
-
+  model: voice-fr-siwis-medium
 # Configuration TTS spécifique
 tts:
   backend: piper
