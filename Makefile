@@ -713,7 +713,7 @@ backend-assets/grpc/llama-cpp: backend-assets/grpc backend/cpp/llama/llama.cpp
 
 backend-assets/grpc/llama-cpp-avx2: backend-assets/grpc backend/cpp/llama/llama.cpp
 	cp -rf backend/cpp/llama backend/cpp/llama-avx2
-	$(MAKE) -C backend/cpp/llama-avx2 purge
+	# $(MAKE) -C backend/cpp/llama-avx2 purge
 	$(info ${GREEN}I llama-cpp build info:avx2${RESET})
 	CMAKE_ARGS="$(CMAKE_ARGS) -DGGML_AVX=on -DGGML_AVX2=on -DGGML_AVX512=off -DGGML_FMA=on -DGGML_F16C=on" $(MAKE) VARIANT="llama-avx2" build-llama-cpp-grpc-server
 	cp -rfv backend/cpp/llama-avx2/grpc-server backend-assets/grpc/llama-cpp-avx2
