@@ -22,7 +22,6 @@ func main() {
 
 	// Initialize zerolog at a level of INFO, we will set the desired level after we parse the CLI options
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Catch signals from the OS requesting us to exit
 	go func() {

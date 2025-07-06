@@ -1,7 +1,7 @@
 package localai
 
 import (
-	"fork/LocalAI/patch"
+	"github.com/mudler/LocalAI/patch"
 
 	"github.com/mudler/LocalAI/core/backend"
 	"github.com/mudler/LocalAI/core/config"
