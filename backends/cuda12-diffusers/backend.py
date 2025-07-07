@@ -452,12 +452,12 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
         # --- START INPAINTING SUPPORT ---
         # Tente de charger l'image et le masque depuis un fichier JSON passé dans request.src
         is_inpainting = False
+        # # # Point d'arrêt debugpy pour le debug interactif
+        # debugpy.listen(("0.0.0.0", 50001))
+        # print("[debugpy] En attente d'un client VSCode pour attacher le debug...", file=sys.stderr)
+        # debugpy.wait_for_client()
+        # debugpy.breakpoint()
         if request.src:
-            # # # Point d'arrêt debugpy pour le debug interactif
-            # debugpy.listen(("0.0.0.0", 50001))
-            # print("[debugpy] En attente d'un client VSCode pour attacher le debug...", file=sys.stderr)
-            # debugpy.wait_for_client()
-            # debugpy.breakpoint()
             try:
                 with open(request.src, 'r') as f:
                     image_data = json.load(f)
@@ -525,14 +525,17 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             options["height"] = request.height
 
         # Construit les arguments pour le pipeline
-        keys = options.keys()
         if request.EnableParameters != "" and request.EnableParameters != "none":
             keys = [key.strip() for key in request.EnableParameters.split(",")]
+            # On s'assure que 'prompt' est toujours inclus si présent dans options
+            if "prompt" not in keys and "prompt" in options:
+                keys.append("prompt")
+            kwargs = {key: options.get(key) for key in keys if key in options and options.get(key) is not None}
         elif request.EnableParameters == "none":
-            keys = []
-
-        # Crée le dictionnaire de paramètres, en s'assurant de ne pas inclure de valeurs None
-        kwargs = {key: options.get(key) for key in keys if key in options and options.get(key) is not None}
+            kwargs = {}
+        else:
+            # Par défaut, on passe tous les paramètres natifs (pas de filtrage)
+            kwargs = {key: value for key, value in options.items() if value is not None}
         kwargs.update(self.options)
 
         # Gère la seed
