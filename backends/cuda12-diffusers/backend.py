@@ -9,6 +9,7 @@ import sys
 import time
 import os
 import json
+import debugpy
 
 from PIL import Image, ImageFilter
 import torch
@@ -448,11 +449,15 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             "negative_prompt": request.negative_prompt,
             "num_inference_steps": steps,
         }
-
         # --- START INPAINTING SUPPORT ---
         # Tente de charger l'image et le masque depuis un fichier JSON passé dans request.src
         is_inpainting = False
         if request.src:
+            # # # Point d'arrêt debugpy pour le debug interactif
+            # debugpy.listen(("0.0.0.0", 50001))
+            # print("[debugpy] En attente d'un client VSCode pour attacher le debug...", file=sys.stderr)
+            # debugpy.wait_for_client()
+            # debugpy.breakpoint()
             try:
                 with open(request.src, 'r') as f:
                     image_data = json.load(f)
