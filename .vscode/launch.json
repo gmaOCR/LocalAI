@@ -29,6 +29,16 @@
             "buildFlags": ["-tags", "p2p tts", "-v"],
             "envFile": "${workspaceFolder}/.env",
             "cwd": "${workspaceRoot}"
+        },
+        {
+            "name": "Python: Attacher au backend",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 50001
+            },
+            "justMyCode": false
         }
     ]
 }
