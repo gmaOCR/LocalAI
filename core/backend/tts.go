@@ -62,7 +62,7 @@ func ModelTTS(
 		Model:    modelPath,
 		Voice:    voice,
 		Dst:      filePath,
-		Language: &language,
+		Language: language,
 	})
 	if err != nil {
 		return "", nil, err

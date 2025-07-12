@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "cmath": "cpp",
+        "complex": "cpp",
+        "expected": "cpp",
+        "__locale": "cpp",
+        "chrono": "cpp",
+        "variant": "cpp",
+        "ranges": "cpp",
+        "valarray": "cpp"
+    }
+}
