@@ -1,3 +1,8 @@
+# Compilation du binaire principal avec support CUDA/cuBLAS
+.PHONY: cuda-build
+cuda-build:
+	BUILD_TYPE=cublas CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/ -L/usr/local/cuda/lib64/stubs/ -lcuda" go build -o local-ai ./
+	@echo "[cuda-build] Binaire local-ai compilé avec support CUDA/cuBLAS."
 GOCMD=go
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
@@ -550,7 +555,7 @@ protogen-clean: protogen-go-clean protogen-python-clean
 protogen-go: install-go-tools
 	mkdir -p pkg/grpc/proto
 	protoc --experimental_allow_proto3_optional -Ibackend/ --go_out=pkg/grpc/proto/ --go_opt=paths=source_relative --go-grpc_out=pkg/grpc/proto/ --go-grpc_opt=paths=source_relative \
-    backend/backend.proto
+	backend/backend.proto
 
 .PHONY: protogen-go-clean
 protogen-go-clean:
