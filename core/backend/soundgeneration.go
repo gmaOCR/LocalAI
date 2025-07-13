@@ -48,34 +48,14 @@ func SoundGeneration(
 	filePath := filepath.Join(audioDir, fileName)
 
 	res, err := soundGenModel.SoundGeneration(context.Background(), &proto.SoundGenerationRequest{
-		Text:   text,
-		Model:  backendConfig.Model,
-		Dst:    filePath,
-		Sample: doSample != nil && *doSample,
-		Duration: func() float32 {
-			if duration != nil {
-				return *duration
-			}
-			return 0
-		}(),
-		Temperature: func() float32 {
-			if temperature != nil {
-				return *temperature
-			}
-			return 0
-		}(),
-		Src: func() string {
-			if sourceFile != nil {
-				return *sourceFile
-			}
-			return ""
-		}(),
-		SrcDivisor: func() int32 {
-			if sourceDivisor != nil {
-				return *sourceDivisor
-			}
-			return 0
-		}(),
+		Text:        text,
+		Model:       backendConfig.Model,
+		Dst:         filePath,
+		Sample:      doSample,
+		Duration:    duration,
+		Temperature: temperature,
+		Src:         sourceFile,
+		SrcDivisor:  sourceDivisor,
 	})
 
 	// return RPC error if any

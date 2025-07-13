@@ -325,7 +325,7 @@ message TTSRequest {
   string model = 2;
   string dst = 3;
   string voice = 4;
-  string language = 5;
+  optional string language = 5;
 }
 
 message VADRequest {
@@ -345,11 +345,11 @@ message SoundGenerationRequest {
   string text = 1;
   string model = 2;
   string dst = 3;
-  float duration = 4;
-  float temperature = 5;
-  bool sample = 6;
-  string src = 7;
-  int32 src_divisor = 8;
+  optional float duration = 4;
+  optional float temperature = 5;
+  optional bool sample = 6;
+  optional string src = 7;
+  optional int32 src_divisor = 8;
 }
 
 message TokenizationResponse {

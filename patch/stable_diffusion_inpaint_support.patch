@@ -1,0 +1,278 @@
+--- backend.py	2025-07-13 15:44:08.636139522 +0200
++++ backend_custom_target.py	2025-07-13 15:44:07.009146045 +0200
+@@ -8,17 +8,20 @@
+ import sys
+ import time
+ import os
++import json
+ 
+-from PIL import Image
++from PIL import Image, ImageFilter
+ import torch
+ 
+ import backend_pb2
+ import backend_pb2_grpc
+ 
+ import grpc
++import io
++import base64
+ 
+ from diffusers import SanaPipeline, StableDiffusion3Pipeline, StableDiffusionXLPipeline, StableDiffusionDepth2ImgPipeline, DPMSolverMultistepScheduler, StableDiffusionPipeline, DiffusionPipeline, \
+-    EulerAncestralDiscreteScheduler, FluxPipeline, FluxTransformer2DModel
++    EulerAncestralDiscreteScheduler, FluxPipeline, FluxTransformer2DModel, StableDiffusionInpaintPipeline
+ from diffusers import StableDiffusionImg2ImgPipeline, AutoPipelineForText2Image, ControlNetModel, StableVideoDiffusionPipeline, Lumina2Text2ImgPipeline
+ from diffusers.pipelines.stable_diffusion import safety_checker
+ from diffusers.utils import load_image, export_to_video
+@@ -38,7 +41,9 @@
+ FRAMES = os.environ.get("FRAMES", "64")
+ 
+ if XPU:
+-    print(torch.xpu.get_device_name(0))
++    import intel_extension_for_pytorch as ipex
++
++    print(ipex.xpu.get_device_name(0))
+ 
+ # If MAX_WORKERS are specified in the environment use it, otherwise default to 1
+ MAX_WORKERS = int(os.environ.get('PYTHON_GRPC_MAX_WORKERS', '1'))
+@@ -206,6 +211,16 @@
+                 else:
+                     self.pipe = StableDiffusionImg2ImgPipeline.from_pretrained(request.Model,
+                                                                                torch_dtype=torchType)
++            
++            # START MODIFICATION: Add Inpainting Pipeline
++            elif request.PipelineType == "StableDiffusionInpaintPipeline":
++                if fromSingleFile:
++                    self.pipe = StableDiffusionInpaintPipeline.from_single_file(modelFile,
++                                                                                torch_dtype=torchType)
++                else:
++                    self.pipe = StableDiffusionInpaintPipeline.from_pretrained(request.Model,
++                                                                               torch_dtype=torchType)
++            # END MODIFICATION
+ 
+             elif request.PipelineType == "StableDiffusionDepth2ImgPipeline":
+                 self.pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(request.Model,
+@@ -334,8 +349,6 @@
+                 request.LoraAdapter = os.path.join(request.ModelPath, request.LoraAdapter)
+ 
+             device = "cpu" if not request.CUDA else "cuda"
+-            if XPU:
+-                device = "xpu"
+             self.device = device
+             if request.LoraAdapter:
+                 # Check if its a local file and not a directory ( we load lora differently for a safetensor file )
+@@ -359,11 +372,12 @@
+ 
+                 self.pipe.set_adapters(adapters_name, adapter_weights=adapters_weights)
+ 
+-            if device != "cpu":
+-                self.pipe.to(device)
++            if request.CUDA:
++                self.pipe.to('cuda')
+                 if self.controlnet:
+-                    self.controlnet.to(device)
+-
++                    self.controlnet.to('cuda')
++            if XPU:
++                self.pipe = self.pipe.to("xpu")
+         except Exception as err:
+             return backend_pb2.Result(success=False, message=f"Unexpected {err=}, {type(err)=}")
+         # Implement your logic here for the LoadModel service
+@@ -426,102 +440,115 @@
+                 curr_layer.weight.data += multiplier * alpha * torch.mm(weight_up, weight_down)
+ 
+     def GenerateImage(self, request, context):
+-
+         prompt = request.positive_prompt
++        steps = request.step if request.step > 0 else 25
+ 
+-        steps = 1
+-
+-        if request.step != 0:
+-            steps = request.step
+-
+-        # create a dictionary of values for the parameters
+         options = {
++            "prompt": prompt,
+             "negative_prompt": request.negative_prompt,
+             "num_inference_steps": steps,
+         }
+ 
+-        if request.src != "" and not self.controlnet and not self.img2vid:
+-            image = Image.open(request.src)
+-            options["image"] = image
+-        elif self.controlnet and request.src:
+-            pose_image = load_image(request.src)
+-            options["image"] = pose_image
++        # --- START INPAINTING SUPPORT ---
++        # Tente de charger l'image et le masque depuis un fichier JSON passé dans request.src
++        is_inpainting = False
++        if request.src:
++            try:
++                with open(request.src, 'r') as f:
++                    image_data = json.load(f)
++                
++                if 'image' in image_data and 'mask_image' in image_data:
++                    # DEBUG : Vérifie les données brutes reçues
++                    mask_b64_length = len(image_data['mask_image'])
++                    print(f"Longueur du base64 du masque reçu: {mask_b64_length}", file=sys.stderr)
++                    
++                    # Décode l'image principale
++                    decoded_image = base64.b64decode(image_data['image'])
++                    image_pil = Image.open(io.BytesIO(decoded_image)).convert("RGB")
++
++                    # Décode le masque
++                    decoded_mask = base64.b64decode(image_data['mask_image'])
++                    print(f"Taille des données décodées du masque: {len(decoded_mask)} bytes", file=sys.stderr)
++                    
++                    # Sauvegarde le masque brut pour inspection
++                    # with open("debug_mask_raw.png", "wb") as f:
++                    #     f.write(decoded_mask)
++                    
++                    mask_pil = Image.open(io.BytesIO(decoded_mask)).convert("L")
++
++                    # DEBUG : Vérifie le contenu du masque reçu
++                    mask_array = list(mask_pil.getdata())
++                    unique_values = set(mask_array)
++                    print(f"Masque reçu - valeurs uniques: {unique_values}", file=sys.stderr)
++                    print(f"Image size: {image_pil.size}, Mask size: {mask_pil.size}", file=sys.stderr)
++                    
++                    # Vérifie que les dimensions correspondent
++                    if mask_pil.size != image_pil.size:
++                        print(f"ERREUR: Tailles incompatibles - Image: {image_pil.size}, Masque: {mask_pil.size}", file=sys.stderr)
++                        context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
++                        context.set_details(f"Image and mask must have the same dimensions. Image: {image_pil.size}, Mask: {mask_pil.size}")
++                        return backend_pb2.Result()
++
++                    # DEBUG : Sauvegarde les images reçues pour comparaison
++                    # image_pil.save("debug_image_from_localai.png")
++                    # mask_pil.save("debug_mask_from_localai.png")
++                    print(f"Prompt reçu: {options['prompt']}", file=sys.stderr)
++
++                    options["image"] = image_pil
++                    options["mask_image"] = mask_pil
++                    is_inpainting = True
++                    print("Successfully loaded image and mask for inpainting.", file=sys.stderr)
++            except Exception:
++                # Ce n'était pas un fichier JSON pour l'inpainting, on continue normalement
++                pass
++        
++        # Solution de repli pour les requêtes img2img classiques
++        if not is_inpainting and request.src:
++            try:
++                image_pil = Image.open(request.src)
++                options["image"] = image_pil
++                print("Successfully loaded single image from src.", file=sys.stderr)
++            except Exception as e:
++                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
++                context.set_details(f"Failed to load image from src path '{request.src}': {e}")
++                return backend_pb2.Result()
++        # --- END INPAINTING SUPPORT ---
+ 
+-        if CLIPSKIP and self.clip_skip != 0:
+-            options["clip_skip"] = self.clip_skip
++        if request.width:
++            options["width"] = request.width
++        if request.height:
++            options["height"] = request.height
+ 
+-        # Get the keys that we will build the args for our pipe for
++        # Construit les arguments pour le pipeline
+         keys = options.keys()
+-
+-        if request.EnableParameters != "":
++        if request.EnableParameters != "" and request.EnableParameters != "none":
+             keys = [key.strip() for key in request.EnableParameters.split(",")]
+-
+-        if request.EnableParameters == "none":
++        elif request.EnableParameters == "none":
+             keys = []
+ 
+-        # create a dictionary of parameters by using the keys from EnableParameters and the values from defaults
+-        kwargs = {key: options.get(key) for key in keys if key in options}
+-
+-        # populate kwargs from self.options.
++        # Crée le dictionnaire de paramètres, en s'assurant de ne pas inclure de valeurs None
++        kwargs = {key: options.get(key) for key in keys if key in options and options.get(key) is not None}
+         kwargs.update(self.options)
+ 
+-        # Set seed
++        # Gère la seed
+         if request.seed > 0:
+-            kwargs["generator"] = torch.Generator(device=self.device).manual_seed(
+-                request.seed
+-            )
+-
+-        if self.PipelineType == "FluxPipeline":
+-            kwargs["max_sequence_length"] = 256
++            kwargs["generator"] = torch.Generator(device=self.device).manual_seed(request.seed)
+ 
+-        if request.width:
+-            kwargs["width"] = request.width
+-
+-        if request.height:
+-            kwargs["height"] = request.height
+-
+-        if self.PipelineType == "FluxTransformer2DModel":
+-            kwargs["output_type"] = "pil"
+-            kwargs["generator"] = torch.Generator("cpu").manual_seed(0)
+-
+-        if self.img2vid:
+-            # Load the conditioning image
+-            image = load_image(request.src)
+-            image = image.resize((1024, 576))
+-
+-            generator = torch.manual_seed(request.seed)
+-            frames = self.pipe(image, guidance_scale=self.cfg_scale, decode_chunk_size=CHUNK_SIZE, generator=generator).frames[0]
+-            export_to_video(frames, request.dst, fps=FPS)
+-            return backend_pb2.Result(message="Media generated successfully", success=True)
+-
+-        if self.txt2vid:
+-            video_frames = self.pipe(prompt, guidance_scale=self.cfg_scale, num_inference_steps=steps, num_frames=int(FRAMES)).frames
+-            export_to_video(video_frames, request.dst)
+-            return backend_pb2.Result(message="Media generated successfully", success=True)
+-
+-        print(f"Generating image with {kwargs=}", file=sys.stderr)
+-        image = {}
+-        if COMPEL:
+-            conditioning, pooled = self.compel.build_conditioning_tensor(prompt)
+-            kwargs["prompt_embeds"] = conditioning
+-            kwargs["pooled_prompt_embeds"] = pooled
+-            # pass the kwargs dictionary to the self.pipe method
+-            image = self.pipe(
+-                guidance_scale=self.cfg_scale,
+-                **kwargs
+-            ).images[0]
+-        else:
+-            # pass the kwargs dictionary to the self.pipe method
+-            image = self.pipe(
+-                prompt,
+-                guidance_scale=self.cfg_scale,
+-                **kwargs
+-            ).images[0]
++        print(f"Generating image with kwargs: {list(kwargs.keys())}", file=sys.stderr)
++        
++        try:
++            # Appelle le pipeline avec tous les arguments
++            image = self.pipe(**kwargs).images[0]
++        except Exception as e:
++            traceback.print_exc(file=sys.stderr)
++            context.set_code(grpc.StatusCode.INTERNAL)
++            context.set_details(f"Failed to generate image: {e}")
++            return backend_pb2.Result()
+ 
+-        # save the result
++        # Sauvegarde l'image
+         image.save(request.dst)
+ 
+-        return backend_pb2.Result(message="Media generated", success=True)
++        return backend_pb2.Result(message="Image generated successfully", success=True)
+ 
+ 
+ def serve(address):
+@@ -560,4 +587,4 @@
+     )
+     args = parser.parse_args()
+ 
+-    serve(args.addr)
++    serve(args.addr)
+\ Pas de fin de ligne à la fin du fichier

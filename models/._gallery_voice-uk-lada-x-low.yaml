@@ -1,0 +1,14 @@
+description: |
+  A fast, local neural text to speech system that sounds great and is optimized for the Raspberry Pi 4. Piper is used in a variety of [projects](https://github.com/rhasspy/piper#people-using-piper).
+icon: https://github.com/rhasspy/piper/raw/master/etc/logo.png
+license: mit
+urls:
+- https://github.com/rhasspy/piper
+name: ""
+config_file: |
+  backend: piper
+files:
+- filename: voice-uk-lada-x-low.tar.gz
+  sha256: ff50acbd659fc226b57632acb1cee310009821ec44b4bc517effdd9827d8296b
+  uri: https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-uk-lada-x-low.tar.gz
+prompt_templates: []

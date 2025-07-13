@@ -1,3 +1,8 @@
+# Compilation du binaire principal avec support CUDA/cuBLAS
+.PHONY: cuda-build
+cuda-build:
+	BUILD_TYPE=cublas CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/ -L/usr/local/cuda/lib64/stubs/ -lcuda" go build -o local-ai ./
+	@echo "[cuda-build] Binaire local-ai compilé avec support CUDA/cuBLAS."
 GOCMD=go
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
@@ -6,11 +11,11 @@ BINARY_NAME=local-ai
 DETECT_LIBS?=true
 
 # llama.cpp versions
-CPPLLAMA_VERSION?=de569441470332ff922c23fb0413cc957be75b25
+CPPLLAMA_VERSION?=f5e96b368f1acc7f53c390001b936517c4d18999
 
 # whisper.cpp version
 WHISPER_REPO?=https://github.com/ggml-org/whisper.cpp
-WHISPER_CPP_VERSION?=bca021c9740b267c2973fba56555be052006023a
+WHISPER_CPP_VERSION?=869335f2d58d04010535be9ae23a69a9da12a169
 
 # go-piper version
 PIPER_REPO?=https://github.com/mudler/go-piper
@@ -18,7 +23,7 @@ PIPER_VERSION?=e10ca041a885d4a8f3871d52924b47792d5e5aa0
 
 # bark.cpp
 BARKCPP_REPO?=https://github.com/PABannier/bark.cpp.git
-BARKCPP_VERSION?=v1.0.0
+BARKCPP_VERSION?=5d5be84f089ab9ea53b7a793f088d3fbf7247495
 
 # stablediffusion.cpp (ggml)
 STABLEDIFFUSION_GGML_REPO?=https://github.com/richiejp/stable-diffusion.cpp
@@ -26,6 +31,7 @@ STABLEDIFFUSION_GGML_VERSION?=53e3b17eb3d0b5760ced06a1f98320b68b34aaae
 
 # ONEAPI variables for SYCL
 export ONEAPI_VARS?=/opt/intel/oneapi/setvars.sh
+ONEAPI_VERSION=2025.1
 
 ONNX_VERSION?=1.20.0
 ONNX_ARCH?=x64
@@ -170,11 +176,20 @@ endif
 ifneq (,$(findstring sycl,$(BUILD_TYPE)))
 	export GGML_SYCL=1
 	CMAKE_ARGS+=-DGGML_SYCL=ON
+	WHISPER_CMAKE_ARGS+=-DGGML_SYCL=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx
+	export CC=icx
+	export CXX=icpx
+	CGO_LDFLAGS_WHISPER += -fsycl -L${DNNLROOT}/lib -rpath ${ONEAPI_ROOT}/${ONEAPI_VERSION}/lib -ldnnl ${MKLROOT}/lib/intel64/libmkl_sycl.a -fiopenmp -fopenmp-targets=spir64 -lOpenCL -lggml-sycl
+	CGO_LDFLAGS_WHISPER += $(shell pkg-config --libs mkl-static-lp64-gomp)
+	CGO_CXXFLAGS_WHISPER += -fiopenmp -fopenmp-targets=spir64
+	CGO_CXXFLAGS_WHISPER += $(shell pkg-config --cflags mkl-static-lp64-gomp )
+	export WHISPER_LIBRARY_PATH:=$(WHISPER_LIBRARY_PATH):$(WHISPER_DIR)/build/ggml/src/ggml-sycl/
 endif
 
 ifeq ($(BUILD_TYPE),sycl_f16)
 	export GGML_SYCL_F16=1
 	CMAKE_ARGS+=-DGGML_SYCL_F16=ON
+	WHISPER_CMAKE_ARGS+=-DGGML_SYCL_F16=ON
 endif
 
 ifeq ($(BUILD_TYPE),hipblas)
@@ -265,8 +280,8 @@ sources/bark.cpp/build/libbark.a: sources/bark.cpp
 	cmake $(CMAKE_ARGS) .. && \
 	cmake --build . --config Release
 
-backend/go/bark/libbark.a: sources/bark.cpp/build/libbark.a
-	$(MAKE) -C backend/go/bark libbark.a
+backend/go/bark-cpp/libbark.a: sources/bark.cpp/build/libbark.a
+	$(MAKE) -C backend/go/bark-cpp libbark.a
 
 ## go-piper
 sources/go-piper:
@@ -355,7 +370,7 @@ clean: ## Remove build related file
 	rm -rf release/
 	rm -rf backend-assets/*
 	$(MAKE) -C backend/cpp/grpc clean
-	$(MAKE) -C backend/go/bark clean
+	$(MAKE) -C backend/go/bark-cpp clean
 	$(MAKE) -C backend/cpp/llama clean
 	$(MAKE) -C backend/go/image/stablediffusion-ggml clean
 	rm -rf backend/cpp/llama-* || true
@@ -540,7 +555,7 @@ protogen-clean: protogen-go-clean protogen-python-clean
 protogen-go: install-go-tools
 	mkdir -p pkg/grpc/proto
 	protoc --experimental_allow_proto3_optional -Ibackend/ --go_out=pkg/grpc/proto/ --go_opt=paths=source_relative --go-grpc_out=pkg/grpc/proto/ --go-grpc_opt=paths=source_relative \
-    backend/backend.proto
+	backend/backend.proto
 
 .PHONY: protogen-go-clean
 protogen-go-clean:
@@ -713,7 +728,7 @@ backend-assets/grpc/llama-cpp: backend-assets/grpc backend/cpp/llama/llama.cpp
 
 backend-assets/grpc/llama-cpp-avx2: backend-assets/grpc backend/cpp/llama/llama.cpp
 	cp -rf backend/cpp/llama backend/cpp/llama-avx2
-	# $(MAKE) -C backend/cpp/llama-avx2 purge
+	$(MAKE) -C backend/cpp/llama-avx2 purge
 	$(info ${GREEN}I llama-cpp build info:avx2${RESET})
 	CMAKE_ARGS="$(CMAKE_ARGS) -DGGML_AVX=on -DGGML_AVX2=on -DGGML_AVX512=off -DGGML_FMA=on -DGGML_F16C=on" $(MAKE) VARIANT="llama-avx2" build-llama-cpp-grpc-server
 	cp -rfv backend/cpp/llama-avx2/grpc-server backend-assets/grpc/llama-cpp-avx2
@@ -778,9 +793,9 @@ backend-assets/util/llama-cpp-rpc-server: backend-assets/grpc/llama-cpp-grpc
 	mkdir -p backend-assets/util/
 	cp -rf backend/cpp/llama-grpc/llama.cpp/build/bin/rpc-server backend-assets/util/llama-cpp-rpc-server
 
-backend-assets/grpc/bark-cpp: backend/go/bark/libbark.a backend-assets/grpc
-	CGO_LDFLAGS="$(CGO_LDFLAGS)" C_INCLUDE_PATH=$(CURDIR)/backend/go/bark/ LIBRARY_PATH=$(CURDIR)/backend/go/bark/ \
-	$(GOCMD) build -ldflags "$(LD_FLAGS)" -tags "$(GO_TAGS)" -o backend-assets/grpc/bark-cpp ./backend/go/bark/
+backend-assets/grpc/bark-cpp: backend/go/bark-cpp/libbark.a backend-assets/grpc
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" C_INCLUDE_PATH=$(CURDIR)/backend/go/bark-cpp/ LIBRARY_PATH=$(CURDIR)/backend/go/bark-cpp/ \
+	$(GOCMD) build -ldflags "$(LD_FLAGS)" -tags "$(GO_TAGS)" -o backend-assets/grpc/bark-cpp ./backend/go/bark-cpp/
 ifneq ($(UPX),)
 	$(UPX) backend-assets/grpc/bark-cpp
 endif
@@ -801,6 +816,7 @@ endif
 
 backend-assets/grpc/whisper: sources/whisper.cpp sources/whisper.cpp/build/src/libwhisper.a backend-assets/grpc
 	CGO_LDFLAGS="$(CGO_LDFLAGS) $(CGO_LDFLAGS_WHISPER)" C_INCLUDE_PATH="${WHISPER_INCLUDE_PATH}" LIBRARY_PATH="${WHISPER_LIBRARY_PATH}" LD_LIBRARY_PATH="${WHISPER_LIBRARY_PATH}" \
+	CGO_CXXFLAGS="$(CGO_CXXFLAGS_WHISPER)" \
 	$(GOCMD) build -ldflags "$(LD_FLAGS)" -tags "$(GO_TAGS)" -o backend-assets/grpc/whisper ./backend/go/transcribe/whisper
 ifneq ($(UPX),)
 	$(UPX) backend-assets/grpc/whisper
@@ -852,18 +868,20 @@ docker-aio-all:
 
 docker-image-intel:
 	docker build \
-		--build-arg BASE_IMAGE=intel/oneapi-basekit:2025.1.0-0-devel-ubuntu24.04 \
+		--build-arg BASE_IMAGE=intel/oneapi-basekit:${ONEAPI_VERSION}.0-0-devel-ubuntu24.04 \
 		--build-arg IMAGE_TYPE=$(IMAGE_TYPE) \
 		--build-arg GO_TAGS="$(GO_TAGS)" \
 		--build-arg MAKEFLAGS="$(DOCKER_MAKEFLAGS)" \
+		--build-arg GRPC_BACKENDS="$(GRPC_BACKENDS)" \
 		--build-arg BUILD_TYPE=sycl_f32 -t $(DOCKER_IMAGE) .
 
 docker-image-intel-xpu:
 	docker build \
-		--build-arg BASE_IMAGE=intel/oneapi-basekit:2025.1.0-0-devel-ubuntu22.04 \
+		--build-arg BASE_IMAGE=intel/oneapi-basekit:${ONEAPI_VERSION}.0-0-devel-ubuntu22.04 \
 		--build-arg IMAGE_TYPE=$(IMAGE_TYPE) \
 		--build-arg GO_TAGS="$(GO_TAGS)" \
 		--build-arg MAKEFLAGS="$(DOCKER_MAKEFLAGS)" \
+		--build-arg GRPC_BACKENDS="$(GRPC_BACKENDS)" \
 		--build-arg BUILD_TYPE=sycl_f32 -t $(DOCKER_IMAGE) .
 
 .PHONY: swagger

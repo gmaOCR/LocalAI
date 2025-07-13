@@ -5,9 +5,9 @@ __pycache__/
 *.o
 get-sources
 prepare-sources
-# /backend/cpp/llama/grpc-server
-# /backend/cpp/llama/llama.cpp
-# /backend/cpp/llama-*
+/backend/cpp/llama/grpc-server
+/backend/cpp/llama/llama.cpp
+/backend/cpp/llama-*
 
 *.log
 
@@ -19,7 +19,8 @@ go-bert
 
 # LocalAI build binary
 LocalAI
-local-ai
+local-ais
+localai
 # prevent above rules from omitting the helm chart
 !charts/*
 # prevent above rules from omitting the api/localai folder
@@ -61,3 +62,8 @@ docs/static/gallery.html
 
 # per-developer customization files for the development container
 .devcontainer/customization/*
+
+backends/
+local-ai
+local-ai
+.github/instructions/greg.instructions.md

@@ -1,8 +1,6 @@
 package localai
 
 import (
-	"github.com/mudler/LocalAI/patch"
-
 	"github.com/mudler/LocalAI/core/backend"
 	"github.com/mudler/LocalAI/core/config"
 	"github.com/mudler/LocalAI/core/http/middleware"
@@ -11,6 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/mudler/LocalAI/core/schema"
 	"github.com/rs/zerolog/log"
+
+	"github.com/mudler/LocalAI/patch"
 
 	"github.com/mudler/LocalAI/pkg/utils"
 )

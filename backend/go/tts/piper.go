@@ -10,7 +10,6 @@ import (
 	"github.com/mudler/LocalAI/pkg/grpc/base"
 	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
 	piper "github.com/mudler/go-piper"
-	"github.com/rs/zerolog/log"
 )
 
 type Piper struct {
@@ -46,6 +45,5 @@ func New(assetDir string) (*PiperB, error) {
 }
 
 func (s *PiperB) TTS(text, model, dst string) error {
-	log.Debug().Str("text", text).Str("model", model).Str("assetDir", s.assetDir).Str("dst", dst).Msg("Appel de piper.TextToWav avec les arguments")
-	return piper.TextToWav(text, model, s.assetDir, "{}", dst)
+	return piper.TextToWav(text, model, s.assetDir, "", dst)
 }
