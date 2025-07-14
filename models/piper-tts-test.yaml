@@ -1,9 +1,0 @@
-backend: piper
-name: piper-tts-test
-parameters:
-  model: fr-siwis-medium.onnx
-# Configuration TTS spécifique
-tts:
-  backend: piper
-  voice: "default"
-  language: "fr"
