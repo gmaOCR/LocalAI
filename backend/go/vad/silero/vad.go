@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/mudler/LocalAI/pkg/grpc/base"
-	pb "github.com/mudler/LocalAI/pkg/grpc/proto"
+	pb "github.com/mudler/LocalAI/github.com/mudler/LocalAI/pkg/grpc/proto"
 	"github.com/streamer45/silero-vad-go/speech"
 )
 
