@@ -8,16 +8,14 @@ import (
 // ApplyTTSLanguageFilter détecte la langue du texte et applique le filtrage
 func ApplyTTSLanguageFilter(input string, cfgLang string) string {
 	info := whatlanggo.Detect(input)
-	lang := ""
 	if info.Lang == whatlanggo.Fra {
-		lang = "fr"
+		// français détecté
 	} else if info.Lang == whatlanggo.Ukr {
-		lang = "uk"
+		// ukrainien détecté
 	} else {
-		lang = "autre"
+		// Si la langue détectée n'est pas supportée, message d'erreur
+		return "La langue détectée n’est pas prise en charge. Veuillez parler en français ou en ukrainien."
 	}
-	// Filtrage et éventuel message d'erreur
-	input = FilterLanguageForTTS(lang, input)
-	input = FilterLanguageForTTS(cfgLang, input)
+	// Si la langue est supportée, on laisse passer le texte original
 	return input
 }
