@@ -4,3 +4,6 @@
 [submodule "docs/themes/lotusdocs"]
 	path = docs/themes/lotusdocs
 	url = https://github.com/colinwilson/lotusdocs
+[submodule "llama.cpp"]
+	path = llama.cpp
+	url = https://github.com/ggerganov/llama.cpp.git
