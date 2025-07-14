@@ -332,3 +332,7 @@ require (
 )
 
 replace github.com/ggerganov/whisper.cpp => /fork/LocalAI/sources/whisper.cpp
+
+replace github.com/ggerganov/whisper.cpp/bindings/go => /fork/LocalAI/sources/whisper.cpp/bindings/go
+
+replace github.com/mudler/go-piper => /fork/LocalAI/sources/go-piper
