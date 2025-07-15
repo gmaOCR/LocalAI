@@ -1,0 +1,158 @@
+[
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_USE_CPU  -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -o CMakeFiles/stable-diffusion.dir/model.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/model.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/model.cpp",
+  "output": "CMakeFiles/stable-diffusion.dir/model.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_USE_CPU  -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -o CMakeFiles/stable-diffusion.dir/stable-diffusion.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/stable-diffusion.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/stable-diffusion.cpp",
+  "output": "CMakeFiles/stable-diffusion.dir/stable-diffusion.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_USE_CPU  -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -o CMakeFiles/stable-diffusion.dir/upscaler.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/upscaler.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/upscaler.cpp",
+  "output": "CMakeFiles/stable-diffusion.dir/upscaler.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_USE_CPU  -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -o CMakeFiles/stable-diffusion.dir/util.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/util.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/util.cpp",
+  "output": "CMakeFiles/stable-diffusion.dir/util.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/cc -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/../include -O3 -DNDEBUG -std=gnu11 -Wshadow -Wstrict-prototypes -Wpointer-arith -Wmissing-prototypes -Werror=implicit-int -Werror=implicit-function-declaration -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wdouble-promotion -o CMakeFiles/ggml-base.dir/ggml.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml.c",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/cc -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/../include -O3 -DNDEBUG -std=gnu11 -Wshadow -Wstrict-prototypes -Wpointer-arith -Wmissing-prototypes -Werror=implicit-int -Werror=implicit-function-declaration -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wdouble-promotion -o CMakeFiles/ggml-base.dir/ggml-alloc.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-alloc.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-alloc.c",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml-alloc.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -o CMakeFiles/ggml-base.dir/ggml-backend.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-backend.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-backend.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml-backend.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -o CMakeFiles/ggml-base.dir/ggml-opt.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-opt.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-opt.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml-opt.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -o CMakeFiles/ggml-base.dir/ggml-threading.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-threading.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-threading.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml-threading.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/cc -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/../include -O3 -DNDEBUG -std=gnu11 -Wshadow -Wstrict-prototypes -Wpointer-arith -Wmissing-prototypes -Werror=implicit-int -Werror=implicit-function-declaration -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wdouble-promotion -o CMakeFiles/ggml-base.dir/ggml-quants.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-quants.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-quants.c",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/ggml-quants.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -o CMakeFiles/ggml-base.dir/gguf.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/gguf.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/gguf.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-base.dir/gguf.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/cc -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/../include -O3 -DNDEBUG -std=gnu11 -Wshadow -Wstrict-prototypes -Wpointer-arith -Wmissing-prototypes -Werror=implicit-int -Werror=implicit-function-declaration -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wdouble-promotion -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu.c",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-aarch64.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-aarch64.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-aarch64.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-aarch64.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-hbm.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-hbm.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-hbm.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-hbm.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/cc -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/../include -O3 -DNDEBUG -std=gnu11 -Wshadow -Wstrict-prototypes -Wpointer-arith -Wmissing-prototypes -Werror=implicit-int -Werror=implicit-function-declaration -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wdouble-promotion -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-quants.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-quants.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-quants.c",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-quants.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-traits.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-traits.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ggml-cpu-traits.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu-traits.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/amx.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/amx/amx.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/amx/amx.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/amx.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/mmq.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/amx/mmq.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/amx/mmq.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/mmq.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/binary-ops.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/binary-ops.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/binary-ops.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/binary-ops.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/unary-ops.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/unary-ops.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/unary-ops.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/unary-ops.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/vec.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/vec.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/vec.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/vec.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_AVX -DGGML_AVX2 -DGGML_BMI2 -DGGML_F16C -DGGML_FMA -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_SSE42 -DGGML_USE_CPU_AARCH64 -DGGML_USE_OPENMP -D_GNU_SOURCE -D_XOPEN_SOURCE=600 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/.. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/. -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -msse4.2 -mf16c -mfma -mbmi2 -mavx -mavx2 -fopenmp -o CMakeFiles/ggml-cpu.dir/ggml-cpu/ops.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ops.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-cpu/ops.cpp",
+  "output": "ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ops.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/ggml/src",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_SCHED_MAX_COPIES=4 -DGGML_USE_CPU -D_GNU_SOURCE -D_XOPEN_SOURCE=600  -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -std=gnu++17 -Wmissing-declarations -Wmissing-noreturn -Wall -Wextra -Wpedantic -Wcast-qual -Wno-unused-function -Wno-array-bounds -Wextra-semi -o CMakeFiles/ggml.dir/ggml-backend-reg.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-backend-reg.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/ggml/src/ggml-backend-reg.cpp",
+  "output": "ggml/src/CMakeFiles/ggml.dir/ggml-backend-reg.cpp.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/thirdparty",
+  "command": "/usr/bin/cc -DGGML_MAX_NAME=128 -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/thirdparty/. -O3 -DNDEBUG -o CMakeFiles/zip.dir/zip.c.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/thirdparty/zip.c",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/thirdparty/zip.c",
+  "output": "thirdparty/CMakeFiles/zip.dir/zip.c.o"
+},
+{
+  "directory": "/fork/LocalAI/backend/go/image/stablediffusion-ggml/build/examples/cli",
+  "command": "/usr/bin/c++ -DGGML_MAX_NAME=128 -DGGML_USE_CPU -I/fork/LocalAI/sources/stablediffusion-ggml.cpp/examples -I. -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/thirdparty -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp/ggml/include -I/fork/LocalAI/backend/go/image/stablediffusion-ggml/../../../../sources/stablediffusion-ggml.cpp -O3 -DNDEBUG -std=c++17 -fPIC -O3 -DNDEBUG -o CMakeFiles/sd.dir/main.cpp.o -c /fork/LocalAI/sources/stablediffusion-ggml.cpp/examples/cli/main.cpp",
+  "file": "/fork/LocalAI/sources/stablediffusion-ggml.cpp/examples/cli/main.cpp",
+  "output": "examples/cli/CMakeFiles/sd.dir/main.cpp.o"
+}
+]
