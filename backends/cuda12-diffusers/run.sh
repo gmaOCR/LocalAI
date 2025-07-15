@@ -1,4 +1,5 @@
 #!/bin/bash
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 set -e
 backend_dir=$(dirname "$0")
 venv_dir="$backend_dir/venv"

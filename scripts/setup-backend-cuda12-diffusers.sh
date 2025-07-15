@@ -18,10 +18,20 @@ fi
 dos2unix run.sh
 chmod +x run.sh
 
-# 2. Créer/mettre à jour le venv Python
+# 2. Créer/mettre à jour le venv Python (supprimer si corrompu)
+if [ -d venv ]; then
+  # Tester si le venv est fonctionnel
+  if ! venv/bin/python -c "import pip" 2>/dev/null; then
+    echo "[setup-backend.sh] venv corrompu détecté, suppression..."
+    rm -rf venv
+  fi
+fi
+
 if [ ! -d venv ]; then
+  echo "[setup-backend.sh] Création d'un nouveau venv Python..."
   python3.12 -m venv venv
 fi
+
 # S'assurer que python pointe sur python3.12 dans le venv
 ln -sf python3.12 venv/bin/python
 source venv/bin/activate
