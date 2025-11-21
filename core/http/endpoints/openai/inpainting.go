@@ -104,9 +104,14 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 			return echo.ErrBadRequest
 		}
 
-		// Use the images subdirectory under GeneratedContentDir so the generated
-		// PNG is placed where the HTTP static handler serves `/generated-images`.
-		tmpDir := filepath.Join(appConfig.GeneratedContentDir, "images")
+		// Use the GeneratedContentDir so the generated PNG is placed where the
+		// HTTP static handler serves `/generated-images`.
+		tmpDir := appConfig.GeneratedContentDir
+		// Ensure the directory exists
+		if err := os.MkdirAll(tmpDir, 0750); err != nil {
+			log.Error().Err(err).Msgf("Inpainting Endpoint - failed to create generated content dir: %s", tmpDir)
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to prepare storage")
+		}
 		id := uuid.New().String()
 		jsonName := fmt.Sprintf("inpaint_%s.json", id)
 		jsonPath := filepath.Join(tmpDir, jsonName)
@@ -114,33 +119,108 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 			"image":      b64Image,
 			"mask_image": b64Mask,
 		}
-		jf, err := os.CreateTemp(tmpDir, "inpaint_")
-		if err != nil {
-			return err
+			jf, err := os.CreateTemp(tmpDir, "inpaint_")
+			if err != nil {
+				return err
+			}
+			// setup cleanup on error; if everything succeeds we set success = true
+			success := false
+			var dst string
+			var origRef string
+			var maskRef string
+			defer func() {
+				if !success {
+					// Best-effort cleanup; log any failures
+					if jf != nil {
+						if cerr := jf.Close(); cerr != nil {
+							log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file in cleanup")
+						}
+						if name := jf.Name(); name != "" {
+							if rerr := os.Remove(name); rerr != nil && !os.IsNotExist(rerr) {
+								log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove temp json file %s in cleanup", name)
+							}
+						}
+					}
+					if jsonPath != "" {
+						if rerr := os.Remove(jsonPath); rerr != nil && !os.IsNotExist(rerr) {
+							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove json file %s in cleanup", jsonPath)
+						}
+					}
+					if dst != "" {
+						if rerr := os.Remove(dst); rerr != nil && !os.IsNotExist(rerr) {
+							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove dst file %s in cleanup", dst)
+						}
+					}
+					if origRef != "" {
+						if rerr := os.Remove(origRef); rerr != nil && !os.IsNotExist(rerr) {
+							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove orig ref file %s in cleanup", origRef)
+						}
+					}
+					if maskRef != "" {
+						if rerr := os.Remove(maskRef); rerr != nil && !os.IsNotExist(rerr) {
+							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove mask ref file %s in cleanup", maskRef)
+						}
+					}
+				}
+			}()
+
+			// write original image and mask to disk as ref images so backends that
+			// accept reference image files can use them (maintainer request).
+			origTmp, err := os.CreateTemp(tmpDir, "refimg_")
+			if err != nil {
+				return err
+			}
+			if _, err := origTmp.Write(imgBytes); err != nil {
+				_ = origTmp.Close()
+				_ = os.Remove(origTmp.Name())
+				return err
+			}
+			if cerr := origTmp.Close(); cerr != nil {
+				log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close orig temp file")
+			}
+			origRef = origTmp.Name()
+
+			maskTmp, err := os.CreateTemp(tmpDir, "refmask_")
+			if err != nil {
+				// cleanup origTmp on error
+				_ = os.Remove(origRef)
+				return err
+			}
+			if _, err := maskTmp.Write(maskBytes); err != nil {
+				_ = maskTmp.Close()
+				_ = os.Remove(maskTmp.Name())
+				_ = os.Remove(origRef)
+				return err
+			}
+			if cerr := maskTmp.Close(); cerr != nil {
+				log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close mask temp file")
+			}
+			maskRef = maskTmp.Name()
+			// write JSON
+			enc := json.NewEncoder(jf)
+			if err := enc.Encode(jsonFile); err != nil {
+				if cerr := jf.Close(); cerr != nil {
+					log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file after encode error")
+				}
+				return err
+			}
+		if cerr := jf.Close(); cerr != nil {
+			log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file")
 		}
-		// write JSON
-		enc := json.NewEncoder(jf)
-		if err := enc.Encode(jsonFile); err != nil {
-			jf.Close()
-			os.Remove(jf.Name())
-			return err
-		}
-		jf.Close()
 		// rename to desired name
 		if err := os.Rename(jf.Name(), jsonPath); err != nil {
-			os.Remove(jf.Name())
 			return err
 		}
 		// prepare dst
 		outTmp, err := os.CreateTemp(tmpDir, "out_")
 		if err != nil {
-			os.Remove(jsonPath)
 			return err
 		}
-		outTmp.Close()
-		dst := outTmp.Name() + ".png"
+		if cerr := outTmp.Close(); cerr != nil {
+			log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close out temp file")
+		}
+		dst = outTmp.Name() + ".png"
 		if err := os.Rename(outTmp.Name(), dst); err != nil {
-			os.Remove(jsonPath)
 			return err
 		}
 
@@ -150,16 +230,15 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 
 		// Call backend image generation via indirection so tests can stub it
 		// Note: ImageGenerationFunc will call into the loaded model's GenerateImage which expects src JSON
-		fn, err := backend.ImageGenerationFunc(height, width, 0, steps, 0, prompt, "", jsonPath, dst, ml, *cfg, appConfig, nil)
+		// Also pass ref images (orig + mask) so backends that support ref images can use them.
+		refImages := []string{origRef, maskRef}
+		fn, err := backend.ImageGenerationFunc(height, width, 0, steps, 0, prompt, "", jsonPath, dst, ml, *cfg, appConfig, refImages)
 		if err != nil {
-			os.Remove(jsonPath)
 			return err
 		}
 
 		// Execute generation function (blocking)
 		if err := fn(); err != nil {
-			os.Remove(jsonPath)
-			os.Remove(dst)
 			return err
 		}
 
@@ -182,8 +261,8 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 			}},
 		}
 
-		// cleanup json
-		defer os.Remove(jsonPath)
+		// mark success so defer cleanup will not remove output files
+		success = true
 
 		return c.JSON(http.StatusOK, resp)
 	}
