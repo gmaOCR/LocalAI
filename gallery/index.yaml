@@ -20748,29 +20748,6 @@
     - filename: DreamShaper_8_pruned.safetensors
       uri: huggingface://Lykon/DreamShaper/DreamShaper_8_pruned.safetensors
       sha256: 879db523c30d3b9017143d56705015e15a2cb5628762c11d086fed9538abd7fd
-- name: dreamshaper-8-inpainting
-  icon: https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/dd9b038c-bd15-43ab-86ab-66e145ad7ff2/width=450/26072158-132340247-8k%20portrait%20of%20beautiful%20cyborg%20with%20brown%20hair,%20intricate,%20elegant,%20highly%20detailed,%20majestic,%20digital%20photography,%20art%20by%20artg_ed.jpeg
-  license: other
-  description: |
-    DreamShaper 8 configured for inpainting tasks using StableDiffusionInpaintPipeline.
-    This model excels at seamlessly editing and filling masked regions of images.
-  urls:
-    - https://civitai.com/models/4384/dreamshaper
-    - https://huggingface.co/Lykon/dreamshaper-8
-  tags:
-    - inpainting
-    - image-editing
-    - stablediffusion
-    - python
-    - gpu
-  url: "github:mudler/LocalAI/gallery/dreamshaper-8-inpainting.yaml@master"
-  overrides:
-    parameters:
-      model: DreamShaper_8_pruned.safetensors
-  files:
-    - filename: DreamShaper_8_pruned.safetensors
-      uri: huggingface://Lykon/DreamShaper/DreamShaper_8_pruned.safetensors
-      sha256: 879db523c30d3b9017143d56705015e15a2cb5628762c11d086fed9538abd7fd
 - name: stable-diffusion-3-medium
   icon: https://avatars.githubusercontent.com/u/100950301
   license: other
