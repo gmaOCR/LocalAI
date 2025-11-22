@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mudler/LocalAI/core/config"
 	"github.com/mudler/LocalAI/core/backend"
+	"github.com/mudler/LocalAI/core/config"
 	model "github.com/mudler/LocalAI/pkg/model"
 	"github.com/stretchr/testify/require"
 )

@@ -119,91 +119,91 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 			"image":      b64Image,
 			"mask_image": b64Mask,
 		}
-			jf, err := os.CreateTemp(tmpDir, "inpaint_")
-			if err != nil {
-				return err
-			}
-			// setup cleanup on error; if everything succeeds we set success = true
-			success := false
-			var dst string
-			var origRef string
-			var maskRef string
-			defer func() {
-				if !success {
-					// Best-effort cleanup; log any failures
-					if jf != nil {
-						if cerr := jf.Close(); cerr != nil {
-							log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file in cleanup")
-						}
-						if name := jf.Name(); name != "" {
-							if rerr := os.Remove(name); rerr != nil && !os.IsNotExist(rerr) {
-								log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove temp json file %s in cleanup", name)
-							}
-						}
+		jf, err := os.CreateTemp(tmpDir, "inpaint_")
+		if err != nil {
+			return err
+		}
+		// setup cleanup on error; if everything succeeds we set success = true
+		success := false
+		var dst string
+		var origRef string
+		var maskRef string
+		defer func() {
+			if !success {
+				// Best-effort cleanup; log any failures
+				if jf != nil {
+					if cerr := jf.Close(); cerr != nil {
+						log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file in cleanup")
 					}
-					if jsonPath != "" {
-						if rerr := os.Remove(jsonPath); rerr != nil && !os.IsNotExist(rerr) {
-							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove json file %s in cleanup", jsonPath)
-						}
-					}
-					if dst != "" {
-						if rerr := os.Remove(dst); rerr != nil && !os.IsNotExist(rerr) {
-							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove dst file %s in cleanup", dst)
-						}
-					}
-					if origRef != "" {
-						if rerr := os.Remove(origRef); rerr != nil && !os.IsNotExist(rerr) {
-							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove orig ref file %s in cleanup", origRef)
-						}
-					}
-					if maskRef != "" {
-						if rerr := os.Remove(maskRef); rerr != nil && !os.IsNotExist(rerr) {
-							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove mask ref file %s in cleanup", maskRef)
+					if name := jf.Name(); name != "" {
+						if rerr := os.Remove(name); rerr != nil && !os.IsNotExist(rerr) {
+							log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove temp json file %s in cleanup", name)
 						}
 					}
 				}
-			}()
-
-			// write original image and mask to disk as ref images so backends that
-			// accept reference image files can use them (maintainer request).
-			origTmp, err := os.CreateTemp(tmpDir, "refimg_")
-			if err != nil {
-				return err
-			}
-			if _, err := origTmp.Write(imgBytes); err != nil {
-				_ = origTmp.Close()
-				_ = os.Remove(origTmp.Name())
-				return err
-			}
-			if cerr := origTmp.Close(); cerr != nil {
-				log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close orig temp file")
-			}
-			origRef = origTmp.Name()
-
-			maskTmp, err := os.CreateTemp(tmpDir, "refmask_")
-			if err != nil {
-				// cleanup origTmp on error
-				_ = os.Remove(origRef)
-				return err
-			}
-			if _, err := maskTmp.Write(maskBytes); err != nil {
-				_ = maskTmp.Close()
-				_ = os.Remove(maskTmp.Name())
-				_ = os.Remove(origRef)
-				return err
-			}
-			if cerr := maskTmp.Close(); cerr != nil {
-				log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close mask temp file")
-			}
-			maskRef = maskTmp.Name()
-			// write JSON
-			enc := json.NewEncoder(jf)
-			if err := enc.Encode(jsonFile); err != nil {
-				if cerr := jf.Close(); cerr != nil {
-					log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file after encode error")
+				if jsonPath != "" {
+					if rerr := os.Remove(jsonPath); rerr != nil && !os.IsNotExist(rerr) {
+						log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove json file %s in cleanup", jsonPath)
+					}
 				}
-				return err
+				if dst != "" {
+					if rerr := os.Remove(dst); rerr != nil && !os.IsNotExist(rerr) {
+						log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove dst file %s in cleanup", dst)
+					}
+				}
+				if origRef != "" {
+					if rerr := os.Remove(origRef); rerr != nil && !os.IsNotExist(rerr) {
+						log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove orig ref file %s in cleanup", origRef)
+					}
+				}
+				if maskRef != "" {
+					if rerr := os.Remove(maskRef); rerr != nil && !os.IsNotExist(rerr) {
+						log.Warn().Err(rerr).Msgf("Inpainting Endpoint - failed to remove mask ref file %s in cleanup", maskRef)
+					}
+				}
 			}
+		}()
+
+		// write original image and mask to disk as ref images so backends that
+		// accept reference image files can use them (maintainer request).
+		origTmp, err := os.CreateTemp(tmpDir, "refimg_")
+		if err != nil {
+			return err
+		}
+		if _, err := origTmp.Write(imgBytes); err != nil {
+			_ = origTmp.Close()
+			_ = os.Remove(origTmp.Name())
+			return err
+		}
+		if cerr := origTmp.Close(); cerr != nil {
+			log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close orig temp file")
+		}
+		origRef = origTmp.Name()
+
+		maskTmp, err := os.CreateTemp(tmpDir, "refmask_")
+		if err != nil {
+			// cleanup origTmp on error
+			_ = os.Remove(origRef)
+			return err
+		}
+		if _, err := maskTmp.Write(maskBytes); err != nil {
+			_ = maskTmp.Close()
+			_ = os.Remove(maskTmp.Name())
+			_ = os.Remove(origRef)
+			return err
+		}
+		if cerr := maskTmp.Close(); cerr != nil {
+			log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close mask temp file")
+		}
+		maskRef = maskTmp.Name()
+		// write JSON
+		enc := json.NewEncoder(jf)
+		if err := enc.Encode(jsonFile); err != nil {
+			if cerr := jf.Close(); cerr != nil {
+				log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file after encode error")
+			}
+			return err
+		}
 		if cerr := jf.Close(); cerr != nil {
 			log.Warn().Err(cerr).Msg("Inpainting Endpoint - failed to close temp json file")
 		}

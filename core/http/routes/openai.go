@@ -140,8 +140,8 @@ func RegisterOpenAIRoutes(app *echo.Echo,
 	// images
 	imageHandler := openai.ImageEndpoint(application.ModelConfigLoader(), application.ModelLoader(), application.ApplicationConfig())
 	imageMiddleware := []echo.MiddlewareFunc{
-		// Default: use the desired inpainting model for image endpoints
-		re.BuildConstantDefaultModelNameMiddleware("dreamshaper-8-inpainting"),
+		// Default: use the first available image generation model
+		re.BuildFilteredFirstAvailableDefaultModel(config.BuildUsecaseFilterFn(config.FLAG_IMAGE)),
 		re.SetModelAndConfig(func() schema.LocalAIRequest { return new(schema.OpenAIRequest) }),
 		func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
