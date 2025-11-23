@@ -1,0 +1,21 @@
+# Dockerfile.inpainting
+FROM golang:1.21-bookworm AS builder
+WORKDIR /src
+
+RUN apt-get update && apt-get install -y ca-certificates git && rm -rf /var/lib/apt/lists/*
+
+# Allow overriding repo and ref at build time
+ARG GIT_REPO=https://github.com/gmaOCR/LocalAI.git
+ARG GIT_REF=fix/inpainting-backend-response-and-cuda
+
+RUN git clone --depth 1 --branch ${GIT_REF} ${GIT_REPO} .
+
+# Build the LocalAI binary (adjust path if your project differs)
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /localai ./cmd/local-ai
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+ENV LOCALAI_PORT=3007
+EXPOSE ${LOCALAI_PORT}
+COPY --from=builder /localai /usr/local/bin/localai
+ENTRYPOINT ["/usr/local/bin/localai"]
