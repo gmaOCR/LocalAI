@@ -315,7 +315,8 @@ ENV HEALTHCHECK_ENDPOINT=http://localhost:8080/readyz
 
 ARG CUDA_MAJOR_VERSION=12
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
-ENV NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_MAJOR_VERSION}.0"
+# NVIDIA_REQUIRE_CUDA commenté temporairement car cause "invalid expression" avec nvidia-container-runtime 1.17.8
+# ENV NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_MAJOR_VERSION}.0"
 ENV NVIDIA_VISIBLE_DEVICES=all
 
 WORKDIR /
