@@ -62,3 +62,10 @@ docs/static/gallery.html
 
 # per-developer customization files for the development container
 .devcontainer/customization/*
+
+# Registry credentials (never commit these!)
+.env.registry
+
+DEPLOY_INPAINTING.md
+QUICKSTART_BUILD.md
+SETUP_COMPLETE.md

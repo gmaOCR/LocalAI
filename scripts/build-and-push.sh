@@ -1,22 +1,89 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and optionally push the inpainting image for this fork/branch
+# Build and push LocalAI with inpainting support to private registry
 # Usage:
-#   GIT_REPO=... GIT_REF=... GHCR_USER=... GHCR_TOKEN=... ./scripts/build-and-push.sh
+#   # Push to private registry (mercure.gregorymariani.com)
+#   ./scripts/build-and-push.sh
+#
+#   # Push to GitHub Container Registry
+#   REGISTRY=ghcr.io REGISTRY_USER=username REGISTRY_TOKEN=xxx ./scripts/build-and-push.sh
+#
+#   # Custom build
+#   IMAGE_TAG=v1.0.0 BUILD_TYPE=cublas ./scripts/build-and-push.sh
 
-IMAGE=${IMAGE:-ghcr.io/${GHCR_USER:-$(git config user.name)} /localai:inpainting-${GIT_REF:-latest}}
+# Configuration
+REGISTRY=${REGISTRY:-mercure.gregorymariani.com}
+REGISTRY_USER=${REGISTRY_USER:-}
+REGISTRY_TOKEN=${REGISTRY_TOKEN:-}
 GIT_REPO=${GIT_REPO:-https://github.com/gmaOCR/LocalAI.git}
-GIT_REF=${GIT_REF:-fix/inpainting-backend-response-and-cuda}
+GIT_REF=${GIT_REF:-local/inpainting-image}
+IMAGE_NAME=${IMAGE_NAME:-localai}
+IMAGE_TAG=${IMAGE_TAG:-inpainting-latest}
+BUILD_TYPE=${BUILD_TYPE:-}  # empty, cublas, hipblas, etc.
 
-echo "Building image from ${GIT_REPO}@${GIT_REF}"
-docker build -f docker/Dockerfile.inpainting -t "${IMAGE}" --build-arg GIT_REPO="${GIT_REPO}" --build-arg GIT_REF="${GIT_REF}" .
-
-if [ -n "${GHCR_USER:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
-  echo "Logging into ghcr.io as ${GHCR_USER}"
-  echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
-  docker push "${IMAGE}"
-  echo "Pushed ${IMAGE}"
+# Construct full image name
+if [ -n "${BUILD_TYPE}" ]; then
+  FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}-${BUILD_TYPE}"
 else
-  echo "GHCR_USER/GHCR_TOKEN not set — image is only built locally: ${IMAGE}"
+  FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+fi
+
+echo "========================================="
+echo "LocalAI Inpainting Build & Push"
+echo "========================================="
+echo "Registry:   ${REGISTRY}"
+echo "Image:      ${FULL_IMAGE}"
+echo "Git Repo:   ${GIT_REPO}"
+echo "Git Ref:    ${GIT_REF}"
+echo "Build Type: ${BUILD_TYPE:-default}"
+echo "========================================="
+
+# Build the image
+echo ""
+echo "Building image..."
+if [ -n "${BUILD_TYPE}" ]; then
+  docker build \
+    -f docker/Dockerfile.inpainting \
+    -t "${FULL_IMAGE}" \
+    --build-arg GIT_REPO="${GIT_REPO}" \
+    --build-arg GIT_REF="${GIT_REF}" \
+    --build-arg BUILD_TYPE="${BUILD_TYPE}" \
+    .
+else
+  docker build \
+    -f docker/Dockerfile.inpainting \
+    -t "${FULL_IMAGE}" \
+    --build-arg GIT_REPO="${GIT_REPO}" \
+    --build-arg GIT_REF="${GIT_REF}" \
+    .
+fi
+
+echo ""
+echo "✓ Build completed: ${FULL_IMAGE}"
+
+# Push to registry if credentials are provided
+if [ -n "${REGISTRY_USER}" ] && [ -n "${REGISTRY_TOKEN}" ]; then
+  echo ""
+  echo "Logging into ${REGISTRY} as ${REGISTRY_USER}..."
+  echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY}" -u "${REGISTRY_USER}" --password-stdin
+  
+  echo ""
+  echo "Pushing ${FULL_IMAGE}..."
+  docker push "${FULL_IMAGE}"
+  
+  echo ""
+  echo "========================================="
+  echo "✓ Successfully pushed: ${FULL_IMAGE}"
+  echo "========================================="
+else
+  echo ""
+  echo "========================================="
+  echo "⚠ Registry credentials not provided"
+  echo "Image built locally only: ${FULL_IMAGE}"
+  echo ""
+  echo "To push to registry, set:"
+  echo "  REGISTRY_USER=<username>"
+  echo "  REGISTRY_TOKEN=<token>"
+  echo "========================================="
 fi
