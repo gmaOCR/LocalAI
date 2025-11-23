@@ -98,7 +98,7 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 		b64Mask := base64.StdEncoding.EncodeToString(maskBytes)
 
 		// get model config from context (middleware set it)
-		cfg, ok := c.Get("MODEL_CONFIG").(*config.ModelConfig)
+		cfg, ok := c.Get(middleware.CONTEXT_LOCALS_KEY_MODEL_CONFIG).(*config.ModelConfig)
 		if !ok || cfg == nil {
 			log.Error().Msg("Inpainting Endpoint - model config not found in context")
 			return echo.ErrBadRequest
@@ -113,8 +113,7 @@ func InpaintingEndpoint(cl *config.ModelConfigLoader, ml *model.ModelLoader, app
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to prepare storage")
 		}
 		id := uuid.New().String()
-		jsonName := fmt.Sprintf("inpaint_%s.json", id)
-		jsonPath := filepath.Join(tmpDir, jsonName)
+		jsonPath := filepath.Join(tmpDir, fmt.Sprintf("inpaint_%s.json", id))
 		jsonFile := map[string]string{
 			"image":      b64Image,
 			"mask_image": b64Mask,

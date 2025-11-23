@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mudler/LocalAI/core/http/middleware"
 	"github.com/mudler/LocalAI/core/backend"
 	"github.com/mudler/LocalAI/core/config"
 	model "github.com/mudler/LocalAI/pkg/model"
@@ -76,7 +77,7 @@ func TestInpainting_HappyPath(t *testing.T) {
 	c := e.NewContext(reqBuf, rec)
 
 	// set a minimal model config in context as handler expects
-	c.Set("MODEL_CONFIG", &config.ModelConfig{Backend: "diffusers"})
+	c.Set(middleware.CONTEXT_LOCALS_KEY_MODEL_CONFIG, &config.ModelConfig{Backend: "diffusers"})
 
 	h := InpaintingEndpoint(nil, nil, appConf)
 
