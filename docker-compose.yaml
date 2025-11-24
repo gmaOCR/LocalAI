@@ -18,9 +18,10 @@ services:
       - .env
     environment:
       - MODELS_PATH=/models
+      - HUGGING_FACE_HUB_TOKEN=${HF_FACE_TOKEN}
     #  - DEBUG=true
     volumes:
-      - ./models:/models:cached
+      - /fork/ia-models:/models:cached
       - ./images/:/tmp/generated/images/
     command:
     # Here we can specify a list of models to run (see quickstart https://localai.io/basics/getting_started/#running-models )
